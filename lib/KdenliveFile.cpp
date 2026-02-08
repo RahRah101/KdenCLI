@@ -326,11 +326,9 @@ XMLElement* KdenliveFile::AddPropertyElement(XMLElement* element_to_add_to, cons
 
 XMLElement* KdenliveFile::CreateEntryElement(const float in, const float out, const char* producer){
     XMLElement* entry = xml_doc.NewElement("entry");
-    const char* in_str = convertToTimestamp(in).c_str();
-    const char* out_str = convertToTimestamp(out).c_str();
-
-    entry->SetAttribute("in", in_str);
-    entry->SetAttribute("out", out_str);
+    
+    entry->SetAttribute("in", convertToTimestamp(in).c_str());
+    entry->SetAttribute("out", convertToTimestamp(out).c_str());
     entry->SetAttribute("producer", producer);
 
     return entry;
@@ -373,12 +371,10 @@ XMLElement* KdenliveFile::AddTrackElement(XMLElement* element_to_add_to, const c
 
 XMLElement* KdenliveFile::CreateFilterElement(const char* id, const float in, const float out){
     XMLElement* filter = xml_doc.NewElement("filter");
-    const char* in_str = convertToTimestamp(in).c_str();
-    const char* out_str = convertToTimestamp(out).c_str();
 
     filter->SetAttribute("id", id);
-    filter->SetAttribute("in", in_str);
-    filter->SetAttribute("out", out_str);
+    filter->SetAttribute("in", convertToTimestamp(in).c_str());
+    filter->SetAttribute("out", convertToTimestamp(out).c_str());
 
     return filter;
 }
