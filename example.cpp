@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "lib\KdenliveProject.h"
+#include "lib/KdenliveProject.h"
 
 using namespace std;
 
@@ -20,7 +20,8 @@ using namespace std;
 
 int main(int argc, char** argv){
     // Create project with 60 fps and 1080p resolution.
-    KdenliveProject proj( 60, 1920, 1080 );
+    KdenliveProject proj;
+    proj.SetProfile( 60, 1920, 1080 );
 
     // Add a video to the video track.
     proj.CreateClipOnVideoTrack( 0, "great_expanse", 10 );
@@ -39,7 +40,7 @@ int main(int argc, char** argv){
 
     // Generate the .kdenlive file. The resulting file should open in Kdenlive.
     vector<string> media_paths = {MEDIA_FOLDER_PATH};
-    proj.SaveToFile( media_paths, OUTPUT_FOLDER_PATH, "example_generated_project" );
+    proj.SaveToFile( media_paths, "example_generated_project", OUTPUT_FOLDER_PATH );
 
     return 0;
 }
