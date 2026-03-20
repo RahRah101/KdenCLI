@@ -20,7 +20,7 @@ string findFilePath(const vector<string> &media_folder_paths, const string &file
 			// Check that the entry is not a folder
 			if( entry.is_regular_file() ) {	
 				// Check if the file name matches
-				if( entry.path().stem().string() == file_name ) {
+				if( entry.path().filename().string() == file_name ) {
 					return entry.path().string();
 				}
 			}
