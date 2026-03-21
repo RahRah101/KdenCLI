@@ -38,44 +38,112 @@ std::map<std::string, std::string> loadConfig(const std::string &path = "config.
     return config;
 }
 
-
-
-
-
-
 int main(int argc, char** argv){
+    CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
+
+    app.require_subcommand(1);
+
+    // --- create ---
+    string create_output;
+    int create_fps = 30, create_width = 1920, create_height = 1080;
+
+    auto *create = app.add_subcommand("create", "Create a new .kdenlive project");
+    create->add_option("output", create_output, "Output .kdenlive file path")->required();
+    create->add_option("--fps,-f", create_fps, "Framerate (default: 30)");
+    create->add_option("--width,-w", create_width, "Frame width (default: 1920)");
+    create->add_option("--height", create_height, "Frame height (default: 1080)");
+
+    // --- import ---
+    string import_project, import_filepath;
+
+    auto *import_cmd = app.add_subcommand("import", "Import a media file into the project bin");
+    import_cmd->add_option("project", import_project, "Project file")->required();
+    import_cmd->add_option("filepath", import_filepath, "Path to media file")->required();
+
+    // --- add-track ---
+    string track_project, track_type = "video";
+
+    auto *add_track = app.add_subcommand("add-track", "Add a video or audio track");
+    add_track->add_option("project", track_project, "Project file")->required();
+    add_track->add_option("--type,-t", track_type, "Track type: video or audio (default: video)");
+
+    // --- place ---
+    string place_project;
+    int place_track = -1, place_clip = -1;
+    float place_at = 0, place_length = -1, place_offset = 0;
+
+    auto *place = app.add_subcommand("place", "Place a clip on a track");
+    place->add_option("project", place_project, "Project file")->required();
+    place->add_option("--track,-t", place_track, "Track ID")->required();
+    place->add_option("--clip,-c", place_clip, "Clip ID")->required();
+    place->add_option("--at,-a", place_at, "Timestamp in seconds (default: 0)");
+    place->add_option("--length,-l", place_length, "Clip length in seconds")->required();
+    place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
+
+    // --- fade ---
+    //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
+    //Once you figure out how to set up mlt_services for different effects
+    string fade_project;
+    int fade_track = -1, fade_entry = -1;
+    float fade_in = 0, fade_out = 0;
+
+    auto *fade = app.add_subcommand("fade", "Apply fade to a placed clip");
+    fade->add_option("project", fade_project, "Project file")->required();
+    fade->add_option("--track,-t", fade_track, "Track ID")->required();
+    fade->add_option("--entry,-e", fade_entry, "Entry ID (from place command)")->required();
+    fade->add_option("--in,-i", fade_in, "Fade in duration in seconds");
+    fade->add_option("--out,-o", fade_out, "Fade out duration in seconds");
+
+    // --- info ---
+    string info_project;
+
+    auto *info = app.add_subcommand("info", "Print project info");
+    info->add_option("project", info_project, "Project file")->required();
+
+    CLI11_PARSE(app, argc, argv);
+
+
     auto config = loadConfig();
     
-    //Just a dumb ass test to see if KdenCLIProject works
-    std::cout << "1. Creating project...\n";
-    KdenCLIProject proj;
-    
-    std::cout << "2. Setting profile...\n";
-    proj.SetProfile(60, 1920, 1080);
-    
-    std::cout << "3. Importing video...\n";
-    std::string video_path = config["MEDIA_FOLDER_PATH"] + "great_expanse.mp4";
-    std::cout << "   Path: " << video_path << "\n";
-    ClipId video = proj.ImportClip(video_path);
-    
-    std::cout << "4. Importing audio...\n";
-    ClipId audio = proj.ImportClip(config["MEDIA_FOLDER_PATH"] + "Free_Test_Data_500KB_MP3.mp3");
-    
-    std::cout << "5. Adding video track...\n";
-    TrackId vtrack = proj.AddVideoTrack();
-    
-    std::cout << "6. Placing clip...\n";
-    TrackEntryId entry = proj.PlaceClip(vtrack, video, 0, 10);
-    
-    std::cout << "7. Fading...\n";
-    proj.FadeClip(vtrack, entry, 1.0, 0.5);
-    
-    std::cout << "8. Auto-placing audio...\n";
-    auto [track, eid] = proj.PlaceOnAudioTrack(audio, 0, 20);
-    
-    std::cout << "9. Saving...\n";
-    proj.Save(config["OUTPUT_FOLDER_PATH"] + "output_project.kdenlive");
-    
-    std::cout << "Done.\n";
+    //This is ugly as hell
+    //TODO : Clean up with function calls later
+    try {
+        if (create->parsed()) {
+            KdenCLIProject proj;
+            proj.SetProfile(create_fps, create_width, create_height);
+            proj.Save(create_output);
+            cout << "Created project: " << create_output << "\n";
+            cout << "  Profile: " << create_width << "x" << create_height
+                 << " @ " << create_fps << " fps\n";
+        }
+
+        else if (import_cmd->parsed()) {
+            // TODO: need to load existing project, import, save
+            // KdenCLIProject currently only creates new projects
+            // This requires adding Open() support
+            cout << "TODO: import requires Open() support\n";
+        }
+
+        else if (add_track->parsed()) {
+            cout << "TODO: add-track requires Open() support\n";
+        }
+
+        else if (place->parsed()) {
+            cout << "TODO: place requires Open() support\n";
+        }
+
+        else if (fade->parsed()) {
+            cout << "TODO: fade requires Open() support\n";
+        }
+
+        else if (info->parsed()) {
+            cout << "TODO: info requires Open() support\n";
+        }
+
+    } catch (const exception &e) {
+        cerr << "Error: " << e.what() << "\n";
+        return 1;
+    }
+
     return 0;
 }
