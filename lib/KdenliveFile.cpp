@@ -176,14 +176,14 @@ TrackId KdenliveFile::AddTrack(const TrackType track_type){
 
 ClipId KdenliveFile::AddClipToBin(const std::string &clip_path){
     // Create chain
-    const char* chain_name = ("chain" + to_string(chain_count)).c_str();
-    XMLElement* chain =  CreateChainElement(chain_name, clip_path.c_str());
+    std::string chain_str = "chain" + to_string(chain_count);
+    XMLElement* chain =  CreateChainElement(chain_str.c_str(), clip_path.c_str());
     
     // Add chain above all playlists and tractors
     AddElementToTopOfRoot(chain);
 
     // Add entry to main bin
-    AddEntryElement(main_bin, 0, 0, chain_name);
+    AddEntryElement(main_bin, 0, 0, chain_str.c_str());
 
     // Set internal data
     chain_count++;
