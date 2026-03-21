@@ -103,6 +103,13 @@ class KdenliveFile{
      */
     void SaveToFile(const std::string &file_name, const std::string &output_filepath = "") const;
 
+    /** Load an existing kdenlive project file.
+     * 
+     */
+    void LoadFromFile(const std::string &filepath);
+
+
+
 
     private:
     // HELPERS
@@ -133,6 +140,10 @@ class KdenliveFile{
     std::string FindDocUUID();
 
     void DeletePreExistingTracks();
+
+    //Helper to init some attributes from the XML
+    void InitFromXML();
+    void ReconstructState();
 
     // PRIVATE VARIABLES
     // Elements

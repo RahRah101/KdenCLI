@@ -33,6 +33,150 @@ ofstream openOutputFile(const string &filePath){
 	return output_file;
 }
 
+void KdenliveFile::LoadFromFile(const std::string &filepath) {
+    xml_doc.Clear();
+    ifstream input_file = openInputFile(filepath);
+    string content = readEntireFile(input_file);
+    input_file.close();
+    xml_doc.Parse(content.c_str());
+    InitFromXML();
+    ReconstructState();
+}
+
+void KdenliveFile::InitFromXML() {
+    root = xml_doc.RootElement();
+    profile = root->FirstChildElement();
+    main_producer = profile->NextSiblingElement();
+    main_bin = FindPlaylistElement("main_bin");
+
+    string timeline_tractor_id = FindDocUUID();
+    timeline_tractor = FindTractorElement(timeline_tractor_id.c_str());
+
+    final_tractor = main_bin->NextSiblingElement();
+    last_added_root_element = main_producer;
+
+    // Walk forward from main_producer to find the last element before main_bin
+    // so that AddElementToRoot inserts in the right place
+    XMLElement* ptr = main_producer->NextSiblingElement();
+    while (ptr != nullptr && ptr != main_bin && ptr != timeline_tractor) {
+        last_added_root_element = ptr;
+        ptr = ptr->NextSiblingElement();
+    }
+}
+
+void KdenliveFile::ReconstructState() {
+    chain_count = 0;
+    for (XMLElement* el = root->FirstChildElement("chain"); el != nullptr;
+         el = el->NextSiblingElement("chain")) {
+        chain_count++;
+    }
+
+    filter_count = 0;
+    // filters live inside playlist entries — just count all filter elements
+    XMLElement* ptr = root->FirstChildElement();
+    while (ptr != nullptr) {
+        if (strcmp(ptr->Name(), "filter") == 0) {
+            filter_count++;
+        }
+        // also check children (filters inside entries)
+        XMLElement* child = ptr->FirstChildElement();
+        while (child != nullptr) {
+            if (strcmp(child->Name(), "filter") == 0) {
+                filter_count++;
+            }
+            XMLElement* grandchild = child->FirstChildElement();
+            while (grandchild != nullptr) {
+                if (strcmp(grandchild->Name(), "filter") == 0) {
+                    filter_count++;
+                }
+                grandchild = grandchild->NextSiblingElement();
+            }
+            child = child->NextSiblingElement();
+        }
+        ptr = ptr->NextSiblingElement();
+    }
+    // Count tracks by looking at the timeline tractor's track elements
+    // Skip the first one (black track / producer0)
+    track_count = 0;
+    track_lengths.clear();
+    track_entries.clear();
+
+    if (timeline_tractor == nullptr) return;
+
+    for (XMLElement* track_el = timeline_tractor->FirstChildElement("track");
+         track_el != nullptr;
+         track_el = track_el->NextSiblingElement("track")) {
+
+        const char* producer_id = track_el->Attribute("producer");
+        if (producer_id == nullptr) continue;
+
+        // Skip the black track producer (first track in timeline)
+        string pid(producer_id);
+        if (pid.find("producer") == 0) continue;  // skip producer0, etc.
+
+        // This is an actual track tractor
+        // Find its first playlist and measure length
+        XMLElement* tractor = FindTractorElement(producer_id);
+        if (tractor == nullptr) continue;
+
+        float track_length = 0;
+        vector<TrackEntry> entries;
+
+        // Get the first playlist from this tractor
+        XMLElement* first_track = tractor->FirstChildElement("track");
+        if (first_track != nullptr) {
+            const char* playlist_id = first_track->Attribute("producer");
+            if (playlist_id != nullptr) {
+                XMLElement* playlist = FindPlaylistElement(playlist_id);
+                if (playlist != nullptr) {
+                    // Walk playlist entries
+                    for (XMLElement* entry = playlist->FirstChildElement();
+                         entry != nullptr;
+                         entry = entry->NextSiblingElement()) {
+
+                        if (strcmp(entry->Name(), "blank") == 0) {
+                            const char* len_str = entry->Attribute("length");
+                            if (len_str != nullptr) {
+                                // Parse timecode to seconds (rough)
+                                float len = 0;
+                                int h, m;
+                                float s;
+                                if (sscanf(len_str, "%d:%d:%f", &h, &m, &s) == 3) {
+                                    len = h * 3600.0f + m * 60.0f + s;
+                                }
+                                track_length += len;
+                                entries.push_back({EntryType::BLANK, len, 0});
+                            }
+                        }
+                        else if (strcmp(entry->Name(), "entry") == 0) {
+                            const char* in_str = entry->Attribute("in");
+                            const char* out_str = entry->Attribute("out");
+                            float in_time = 0, out_time = 0;
+                            if (in_str) {
+                                int h, m; float s;
+                                if (sscanf(in_str, "%d:%d:%f", &h, &m, &s) == 3)
+                                    in_time = h * 3600.0f + m * 60.0f + s;
+                            }
+                            if (out_str) {
+                                int h, m; float s;
+                                if (sscanf(out_str, "%d:%d:%f", &h, &m, &s) == 3)
+                                    out_time = h * 3600.0f + m * 60.0f + s;
+                            }
+                            float clip_len = out_time - in_time;
+                            track_length += clip_len;
+                            entries.push_back({EntryType::CLIP, clip_len, in_time});
+                        }
+                    }
+                }
+            }
+        }
+
+        track_lengths.push_back(track_length);
+        track_entries.push_back(entries);
+        track_count++;
+    }
+}
+
 string readEntireFile(ifstream &input_file){
 	return string(istreambuf_iterator<char>(input_file), istreambuf_iterator<char>());
 }
@@ -547,5 +691,23 @@ void KdenliveFile::DeletePreExistingTracks(){
                 t_ptr = t_ptr->NextSiblingElement();
             }
         }
+    }
+
+    // Reset track count properties in the timeline tractor
+    XMLElement* prop = timeline_tractor->FirstChildElement("property");
+    while (prop != nullptr) {
+        const char* name = prop->Attribute("name");
+        if (name != nullptr) {
+            string n(name);
+            if (n == "kdenlive:sequenceproperties.activeTrack" ||
+                n == "kdenlive:sequenceproperties.videoTarget" ||
+                n == "kdenlive:sequenceproperties.audioTarget") {
+                prop->SetText("0");
+            }
+            else if (n == "kdenlive:sequenceproperties.tracksCount") {
+                prop->SetText("0");
+            }
+        }
+        prop = prop->NextSiblingElement("property");
     }
 }
