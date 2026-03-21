@@ -11,6 +11,9 @@ public:
     // Create a new empty project
     KdenCLIProject();
 
+    // Open an existing project
+    void Open(const std::string &filepath);
+
     // Set the video profile
     void SetProfile(float framerate, int width, int height);
 
@@ -57,6 +60,7 @@ private:
                               float timestamp);
 
     KdenliveFile file;
+    std::string project_path;
     std::vector<TrackId> video_tracks;
     std::vector<TrackId> audio_tracks;
     std::map<std::string, ClipId> imported_clips; // path -> ClipId dedup

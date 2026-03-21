@@ -9,8 +9,15 @@ KdenCLIProject::KdenCLIProject() {
     //file.SetProfile(30, 1920, 1080);
 }
 
+
+
 void KdenCLIProject::SetProfile(float framerate, int width, int height) {
     file.SetProfile(static_cast<int>(framerate), width, height);
+}
+
+void KdenCLIProject::Open(const std::string &filepath) {
+    file.LoadFromFile(filepath);
+    project_path = filepath;
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {

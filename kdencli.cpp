@@ -38,6 +38,7 @@ std::map<std::string, std::string> loadConfig(const std::string &path = "config.
     return config;
 }
 
+
 int main(int argc, char** argv){
     CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
 
@@ -107,37 +108,62 @@ int main(int argc, char** argv){
     
     //This is ugly as hell
     //TODO : Clean up with function calls later
-    try {
+try {
         if (create->parsed()) {
-            KdenCLIProject proj;
-            proj.SetProfile(create_fps, create_width, create_height);
-            proj.Save(create_output);
-            cout << "Created project: " << create_output << "\n";
-            cout << "  Profile: " << create_width << "x" << create_height
+        KdenCLIProject proj;
+        proj.SetProfile(create_fps, create_width, create_height);
+        proj.AddVideoTrack();
+        proj.AddAudioTrack();
+        proj.Save(create_output);
+        cout << "Created project: " << create_output << "\n";
+        cout << "  Profile: " << create_width << "x" << create_height
                  << " @ " << create_fps << " fps\n";
         }
 
         else if (import_cmd->parsed()) {
-            // TODO: need to load existing project, import, save
-            // KdenCLIProject currently only creates new projects
-            // This requires adding Open() support
-            cout << "TODO: import requires Open() support\n";
+            KdenCLIProject proj;
+            proj.Open(import_project);
+            ClipId id = proj.ImportClip(import_filepath);
+            proj.Save(import_project);
+            cout << "Imported clip " << id << ": " << import_filepath << "\n";
         }
 
         else if (add_track->parsed()) {
-            cout << "TODO: add-track requires Open() support\n";
+            KdenCLIProject proj;
+            proj.Open(track_project);
+            TrackId id;
+            if (track_type == "audio") {
+                id = proj.AddAudioTrack();
+            } else {
+                id = proj.AddVideoTrack();
+            }
+            proj.Save(track_project);
+            cout << "Added " << track_type << " track " << id << "\n";
         }
 
         else if (place->parsed()) {
-            cout << "TODO: place requires Open() support\n";
+            KdenCLIProject proj;
+            proj.Open(place_project);
+            TrackEntryId entry = proj.PlaceClip(place_track, place_clip,
+                                                 place_at, place_length, place_offset);
+            proj.Save(place_project);
+            cout << "Placed clip " << place_clip << " on track " << place_track
+                 << " -> entry " << entry << "\n";
         }
 
         else if (fade->parsed()) {
-            cout << "TODO: fade requires Open() support\n";
+            KdenCLIProject proj;
+            proj.Open(fade_project);
+            proj.FadeClip(fade_track, fade_entry, fade_in, fade_out);
+            proj.Save(fade_project);
+            cout << "Applied fade to track " << fade_track
+                 << " entry " << fade_entry << "\n";
         }
 
         else if (info->parsed()) {
-            cout << "TODO: info requires Open() support\n";
+            KdenCLIProject proj;
+            proj.Open(info_project);
+            proj.PrintInfo();
         }
 
     } catch (const exception &e) {
