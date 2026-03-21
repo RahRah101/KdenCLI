@@ -3,3 +3,5 @@
 config.local
 example
 dependencies/
+kdencli
+kdencli.exe
