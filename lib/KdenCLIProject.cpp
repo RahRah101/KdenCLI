@@ -18,6 +18,11 @@ void KdenCLIProject::SetProfile(float framerate, int width, int height) {
 void KdenCLIProject::Open(const std::string &filepath) {
     file.LoadFromFile(filepath);
     project_path = filepath;
+    //TODO: It's not enough to just load the file - we need to reconstruct the project.
+    //PrintInfo fails completely because of this.
+    //It's a bit dirty to constantly sync the project and KdenliveFile ngl.
+    //Might have to rethink architecture.
+    //Maybe ditch KdenCLIProject and just use KdenliveFile directly.
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {

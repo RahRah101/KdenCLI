@@ -104,7 +104,13 @@ int main(int argc, char** argv){
     CLI11_PARSE(app, argc, argv);
 
 
+    //Load config
+    /*
+    Example config file:
+    KDENLIVE_SHARE_ROOT=/usr/share/kdenlive/
+    */
     auto config = loadConfig();
+    
     
     //This is ugly as hell
     //TODO : Clean up with function calls later
