@@ -9,8 +9,7 @@ using namespace tinyxml2;
 
 
 // This file is simply the default file created by Kdenlive when creating a new project.
-// The only changes that were made to the file were to remove references to filepaths.
-// Using this library to modify a file that has already been edited in will not work, as Kdenlive generates a lot of data that we don't generate here.
+// TODO: Do this another way
 const char* EMPTY_PROJECT_FILEPATH = "dependencies/empty_project.kdenlive";
 
 
