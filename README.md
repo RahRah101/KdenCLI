@@ -1,5 +1,5 @@
 # KdenCLI
-A small and simple CLI wrapper fork around KdenCode (and, consequently, around KdenLive)
+A small and simple CLI wrapper fork around [KdenCode](https://github.com/joshschnauber/KdenCode) (and, consequently, around KdenLive)
 
 # Features
 - Setting the profile of the project file.
