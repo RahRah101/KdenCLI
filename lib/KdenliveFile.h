@@ -29,6 +29,9 @@ typedef int TrackEntryId;
 // Wrapper class for XMLDocument, specifically for .kdenlive files
 class KdenliveFile{
     public:
+
+
+
     // Data types that I don't want cluttering the global namespace
     enum TrackType{
         AUDIO,
@@ -47,7 +50,16 @@ class KdenliveFile{
         float start_offset;
     };
 
+    struct TrackInfo {
+        int id;
+        TrackType type;
+        float length;
+    };
 
+    struct ClipInfo {
+        int id;
+        std::string resource;
+    };
     public:
     // CONSTRUCTORS 
     /** Constructs an empty Kdenlive file, with 0 video tracks and 0 audio tracks.
@@ -97,6 +109,12 @@ class KdenliveFile{
     float GetTrackLength(const TrackId track_id);
     /** Returns the file as a string, which can then be saved to a file.
      */
+    std::vector<TrackInfo> GetTracks();
+    std::vector<ClipInfo> GetClips();
+    tinyxml2::XMLElement* GetTimelineTractor();
+    tinyxml2::XMLElement* GetRoot();
+    tinyxml2::XMLElement* FindTractorById(const char* id);
+
     std::string ToString() const;
     /** Saves the KdenliveFile to the given directory.
      *  If no output filepath is specified, then it will save the file to current directory.
@@ -161,6 +179,7 @@ class KdenliveFile{
     int filter_count;
     std::vector<float> track_lengths;
     std::vector<std::vector<TrackEntry>> track_entries;
+    
 };
 
 

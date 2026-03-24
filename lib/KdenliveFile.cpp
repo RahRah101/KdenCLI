@@ -432,6 +432,80 @@ float KdenliveFile::GetTrackLength(const TrackId track_id){
     return track_lengths[track_id];
 }
 
+std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
+    std::vector<TrackInfo> tracks;
+    if (timeline_tractor == nullptr) return tracks;
+
+    int index = 0;
+    for (auto* track_el = timeline_tractor->FirstChildElement("track");
+         track_el != nullptr;
+         track_el = track_el->NextSiblingElement("track")) {
+
+        const char* producer_id = track_el->Attribute("producer");
+        if (producer_id == nullptr) continue;
+
+        string pid(producer_id);
+        if (pid.find("producer") == 0) continue;
+
+        XMLElement* tractor = FindTractorElement(producer_id);
+        if (tractor == nullptr) continue;
+
+        TrackType type = VIDEO;
+        for (auto* prop = tractor->FirstChildElement("property");
+             prop != nullptr;
+             prop = prop->NextSiblingElement("property")) {
+            if (prop->Attribute("name", "kdenlive:audio_track")) {
+                type = AUDIO;
+                break;
+            }
+        }
+
+        float length = (index < (int)track_lengths.size()) ? track_lengths[index] : 0;
+        tracks.push_back({index, type, length});
+        index++;
+    }
+
+    return tracks;
+}
+
+std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
+    std::vector<ClipInfo> clips;
+    int index = 0;
+
+    for (auto* chain = root->FirstChildElement("chain");
+         chain != nullptr;
+         chain = chain->NextSiblingElement("chain")) {
+
+        string resource;
+        for (auto* prop = chain->FirstChildElement("property");
+             prop != nullptr;
+             prop = prop->NextSiblingElement("property")) {
+            if (prop->Attribute("name", "resource") && prop->GetText()) {
+                resource = prop->GetText();
+                break;
+            }
+        }
+
+        clips.push_back({index, resource});
+        index++;
+    }
+
+    return clips;
+}
+
+tinyxml2::XMLElement* KdenliveFile::GetTimelineTractor() { 
+    return timeline_tractor; 
+}
+
+tinyxml2::XMLElement* KdenliveFile::GetRoot() { 
+    return root; 
+}
+
+tinyxml2::XMLElement* KdenliveFile::FindTractorById(const char* id) { 
+    return FindTractorElement(id); 
+}
+
+
 string KdenliveFile::ToString() const{
     XMLPrinter printer;
     xml_doc.Print(&printer);

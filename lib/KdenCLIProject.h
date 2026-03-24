@@ -6,6 +6,13 @@
 #include <map>
 #include "KdenliveFile.h"
 
+
+
+//TODO: You know what, this is absolute garbage. Having to sync state between Project and File objects is a mess.
+//I just realized this after implementing that video track / audio track info stuff.
+//Duplicated state that needs to be synced is always a bug factory
+//Likewise with imported clips and all that stuff. This is a mess man.
+//Simplify KdenCLIProject to just be a thin nice wrapper around KdenliveFile with no state of its own.
 class KdenCLIProject {
 public:
     // Create a new empty project

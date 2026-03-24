@@ -18,11 +18,22 @@ void KdenCLIProject::SetProfile(float framerate, int width, int height) {
 void KdenCLIProject::Open(const std::string &filepath) {
     file.LoadFromFile(filepath);
     project_path = filepath;
-    //TODO: It's not enough to just load the file - we need to reconstruct the project.
-    //PrintInfo fails completely because of this.
-    //It's a bit dirty to constantly sync the project and KdenliveFile ngl.
-    //Might have to rethink architecture.
-    //Maybe ditch KdenCLIProject and just use KdenliveFile directly.
+
+    video_tracks.clear();
+    audio_tracks.clear();
+    imported_clips.clear();
+
+    for (const auto &track : file.GetTracks()) {
+        if (track.type == KdenliveFile::AUDIO) {
+            audio_tracks.push_back(track.id);
+        } else {
+            video_tracks.push_back(track.id);
+        }
+    }
+
+    for (const auto &clip : file.GetClips()) {
+        imported_clips[clip.resource] = clip.id;
+    }
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
@@ -105,17 +116,18 @@ float KdenCLIProject::GetTrackLength(TrackId track) {
 }
 
 void KdenCLIProject::PrintInfo() {
-    std::cout << "Video tracks: " << video_tracks.size() << "\n";
-    for (auto id : video_tracks) {
-        std::cout << "  Track " << id << " length: " << file.GetTrackLength(id) << "s\n";
+    auto tracks = file.GetTracks();
+    auto clips = file.GetClips();
+
+    std::cout << "Tracks: " << tracks.size() << "\n";
+    for (const auto &t : tracks) {
+        std::string type = (t.type == KdenliveFile::AUDIO) ? "audio" : "video";
+        std::cout << "  [" << t.id << "] " << type << " - " << t.length << "s\n";
     }
-    std::cout << "Audio tracks: " << audio_tracks.size() << "\n";
-    for (auto id : audio_tracks) {
-        std::cout << "  Track " << id << " length: " << file.GetTrackLength(id) << "s\n";
-    }
-    std::cout << "Imported clips: " << imported_clips.size() << "\n";
-    for (const auto &[path, id] : imported_clips) {
-        std::cout << "  [" << id << "] " << path << "\n";
+
+    std::cout << "Clips: " << clips.size() << "\n";
+    for (const auto &c : clips) {
+        std::cout << "  [" << c.id << "] " << c.resource << "\n";
     }
 }
 
