@@ -69,14 +69,17 @@ int main(int argc, char** argv){
     add_track->add_option("--type,-t", track_type, "Track type: video or audio (default: video)");
 
     // --- place ---
-    string place_project;
-    int place_track = -1, place_clip = -1;
+    string place_project, place_clip_file;
+    int place_track = -1, place_clip_id = -1;
     float place_at = 0, place_length = -1, place_offset = 0;
 
     auto *place = app.add_subcommand("place", "Place a clip on a track");
     place->add_option("project", place_project, "Project file")->required();
     place->add_option("--track,-t", place_track, "Track ID")->required();
-    place->add_option("--clip,-c", place_clip, "Clip ID")->required();
+    auto *place_clip_group = place->add_option_group("clip", "Clip to place (pick one)");
+    place_clip_group->add_option("--clipid,-c", place_clip_id, "Clip ID");
+    place_clip_group->add_option("--file,-f", place_clip_file, "Clip filepath");
+    place_clip_group->require_option(1);
     place->add_option("--at,-a", place_at, "Timestamp in seconds (default: 0)");
     place->add_option("--length,-l", place_length, "Clip length in seconds")->required();
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
@@ -150,11 +153,18 @@ int main(int argc, char** argv){
         else if (place->parsed()) {
             KdenCLIProject proj;
             proj.Open(place_project);
-            TrackEntryId entry = proj.PlaceClip(place_track, place_clip,
-                                                 place_at, place_length, place_offset);
+
+            TrackEntryId entry;
+            if (!place_clip_file.empty()) {
+                entry = proj.PlaceClipByFilename(place_clip_file, place_track,
+                                                  place_at, place_length, place_offset);
+            } else {
+                entry = proj.PlaceClipById(place_track, place_clip_id,
+                                            place_at, place_length, place_offset);
+            }
+
             proj.Save(place_project);
-            cout << "Placed clip " << place_clip << " on track " << place_track
-                 << " -> entry " << entry << "\n";
+            cout << "Placed on track " << place_track << " -> entry " << entry << "\n";
         }
 
         else if (fade->parsed()) {
