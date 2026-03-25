@@ -46,7 +46,7 @@ TrackId KdenCLIProject::AddAudioTrack() {
     return id;
 }
 
-TrackEntryId KdenCLIProject::PlaceClip(TrackId track, ClipId clip,
+TrackEntryId KdenCLIProject::PlaceClipById(TrackId track, ClipId clip,
                                         float timestamp, float length,
                                         float start_offset) {
     float track_length = file.GetTrackLength(track);
@@ -57,6 +57,16 @@ TrackEntryId KdenCLIProject::PlaceClip(TrackId track, ClipId clip,
     }
 
     return file.AddClipToTrack(track, clip, length, start_offset);
+}
+
+TrackEntryId KdenCLIProject::PlaceClipByFilename(const std::string &filepath, TrackId track,
+                                        float timestamp, float length,
+                                        float start_offset) {
+    ClipId clip = file.FindClipByResource(filepath);
+    if (clip < 0) {
+        throw std::runtime_error("Clip not in bin: " + filepath + "\nRun import first.");
+    }
+    return PlaceClipById(track, clip, timestamp, length, start_offset);
 }
 
 void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
@@ -77,14 +87,14 @@ TrackId KdenCLIProject::FindOrCreateTrack(KdenliveFile::TrackType type,
 KdenCLIProject::Placement KdenCLIProject::PlaceOnVideoTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
     TrackId track = FindOrCreateTrack(KdenliveFile::VIDEO, timestamp);
-    TrackEntryId entry = PlaceClip(track, clip, timestamp, length, start_offset);
+    TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
 
 KdenCLIProject::Placement KdenCLIProject::PlaceOnAudioTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
     TrackId track = FindOrCreateTrack(KdenliveFile::AUDIO, timestamp);
-    TrackEntryId entry = PlaceClip(track, clip, timestamp, length, start_offset);
+    TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
 

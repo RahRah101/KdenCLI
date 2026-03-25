@@ -29,8 +29,11 @@ public:
     // Place a clip on a specific track at a timestamp.
     // Handles blank insertion automatically.
     // Returns the TrackEntryId for applying effects later.
-    TrackEntryId PlaceClip(TrackId track, ClipId clip, float timestamp,
+    TrackEntryId PlaceClipById(TrackId track, ClipId clip, float timestamp,
                            float length, float start_offset = 0);
+    TrackEntryId PlaceClipByFilename(const std::string &filepath, TrackId track,
+                                        float timestamp, float length, float start_offset = 0);
+
 
     // Apply fade effect to a placed clip
     void FadeClip(TrackId track, TrackEntryId entry,
