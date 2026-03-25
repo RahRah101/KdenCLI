@@ -468,6 +468,7 @@ std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
     return tracks;
 }
 
+
 std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
     std::vector<ClipInfo> clips;
     int index = 0;
@@ -491,6 +492,25 @@ std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
     }
 
     return clips;
+}
+
+ClipId KdenliveFile::FindClipByResource(const std::string &filepath) {
+    int index = 0;
+    for (auto* chain = root->FirstChildElement("chain");
+         chain != nullptr;
+         chain = chain->NextSiblingElement("chain")) {
+        for (auto* prop = chain->FirstChildElement("property");
+             prop != nullptr;
+             prop = prop->NextSiblingElement("property")) {
+            if (prop->Attribute("name", "resource") && prop->GetText()) {
+                if (filepath == prop->GetText()) {
+                    return index;
+                }
+            }
+        }
+        index++;
+    }
+    return -1;
 }
 
 tinyxml2::XMLElement* KdenliveFile::GetTimelineTractor() { 

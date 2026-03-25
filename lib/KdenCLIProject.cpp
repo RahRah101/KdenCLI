@@ -18,50 +18,31 @@ void KdenCLIProject::SetProfile(float framerate, int width, int height) {
 void KdenCLIProject::Open(const std::string &filepath) {
     file.LoadFromFile(filepath);
     project_path = filepath;
-
-    video_tracks.clear();
-    audio_tracks.clear();
-    imported_clips.clear();
-
-    for (const auto &track : file.GetTracks()) {
-        if (track.type == KdenliveFile::AUDIO) {
-            audio_tracks.push_back(track.id);
-        } else {
-            video_tracks.push_back(track.id);
-        }
-    }
-
-    for (const auto &clip : file.GetClips()) {
-        imported_clips[clip.resource] = clip.id;
-    }
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
     // check if already imported
-    auto it = imported_clips.find(filepath);
-    if (it != imported_clips.end()) {
-        return it->second;
+    ClipId existing = file.FindClipByResource(filepath);
+    if (existing >= 0) {
+        return existing;
     }
-
     // verify file exists
     if (!fs::exists(filepath)) {
         throw std::runtime_error("File not found: " + filepath);
     }
 
     ClipId id = file.AddClipToBin(filepath);
-    imported_clips[filepath] = id;
     return id;
 }
 
 TrackId KdenCLIProject::AddVideoTrack() {
     TrackId id = file.AddTrack(KdenliveFile::VIDEO);
-    video_tracks.push_back(id);
+    //video_tracks.push_back(id);
     return id;
 }
 
 TrackId KdenCLIProject::AddAudioTrack() {
     TrackId id = file.AddTrack(KdenliveFile::AUDIO);
-    audio_tracks.push_back(id);
     return id;
 }
 
@@ -83,30 +64,26 @@ void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
     file.FadeClip(track, entry, fade_in, fade_out);
 }
 
-TrackId KdenCLIProject::FindOrCreateTrack(std::vector<TrackId> &tracks,
-                                           KdenliveFile::TrackType type,
+TrackId KdenCLIProject::FindOrCreateTrack(KdenliveFile::TrackType type,
                                            float timestamp) {
-    for (auto id : tracks) {
-        if (file.GetTrackLength(id) <= timestamp) {
-            return id;
+    for (const auto &track : file.GetTracks()) {
+        if (track.type == type && track.length <= timestamp) {
+            return track.id;
         }
     }
-
-    TrackId new_track = file.AddTrack(type);
-    tracks.push_back(new_track);
-    return new_track;
+    return file.AddTrack(type);
 }
 
 KdenCLIProject::Placement KdenCLIProject::PlaceOnVideoTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
-    TrackId track = FindOrCreateTrack(video_tracks, KdenliveFile::VIDEO, timestamp);
+    TrackId track = FindOrCreateTrack(KdenliveFile::VIDEO, timestamp);
     TrackEntryId entry = PlaceClip(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
 
 KdenCLIProject::Placement KdenCLIProject::PlaceOnAudioTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
-    TrackId track = FindOrCreateTrack(audio_tracks, KdenliveFile::AUDIO, timestamp);
+    TrackId track = FindOrCreateTrack(KdenliveFile::AUDIO, timestamp);
     TrackEntryId entry = PlaceClip(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }

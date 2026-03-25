@@ -111,6 +111,7 @@ class KdenliveFile{
      */
     std::vector<TrackInfo> GetTracks();
     std::vector<ClipInfo> GetClips();
+    ClipId FindClipByResource(const std::string &filepath);
     tinyxml2::XMLElement* GetTimelineTractor();
     tinyxml2::XMLElement* GetRoot();
     tinyxml2::XMLElement* FindTractorById(const char* id);
@@ -179,7 +180,6 @@ class KdenliveFile{
     int filter_count;
     std::vector<float> track_lengths;
     std::vector<std::vector<TrackEntry>> track_entries;
-    
 };
 
 

@@ -7,12 +7,6 @@
 #include "KdenliveFile.h"
 
 
-
-//TODO: You know what, this is absolute garbage. Having to sync state between Project and File objects is a mess.
-//I just realized this after implementing that video track / audio track info stuff.
-//Duplicated state that needs to be synced is always a bug factory
-//Likewise with imported clips and all that stuff. This is a mess man.
-//Simplify KdenCLIProject to just be a thin nice wrapper around KdenliveFile with no state of its own.
 class KdenCLIProject {
 public:
     // Create a new empty project
@@ -62,15 +56,11 @@ public:
     std::string ToString();
 
 private:
-    TrackId FindOrCreateTrack(std::vector<TrackId> &tracks,
-                              KdenliveFile::TrackType type,
+    TrackId FindOrCreateTrack(KdenliveFile::TrackType type,
                               float timestamp);
 
     KdenliveFile file;
     std::string project_path;
-    std::vector<TrackId> video_tracks;
-    std::vector<TrackId> audio_tracks;
-    std::map<std::string, ClipId> imported_clips; // path -> ClipId dedup
 };
 
 #endif
