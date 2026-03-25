@@ -114,7 +114,7 @@ int main(int argc, char** argv){
     
     //This is ugly as hell
     //TODO : Clean up with function calls later
-try {
+    try {
         if (create->parsed()) {
         KdenCLIProject proj;
         proj.SetProfile(create_fps, create_width, create_height);
