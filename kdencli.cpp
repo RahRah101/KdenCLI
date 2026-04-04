@@ -163,8 +163,8 @@ int main(int argc, char** argv){
     place->add_option("--at,-a", place_at, "Timestamp in seconds (default: 0)");
     place->add_option("--length,-l", place_length, "Clip length in seconds");
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
-    place->add_option("-ss", place_cut_start, "Cut start (seconds, MM:SS, or HH:MM:SS)");
-    place->add_option("-to", place_cut_end, "Cut end (seconds, MM:SS, or HH:MM:SS)");
+    place->add_option("--ss", place_cut_start, "Cut start (seconds, MM:SS, or HH:MM:SS)");
+    place->add_option("--to", place_cut_end, "Cut end (seconds, MM:SS, or HH:MM:SS)");
 
     // --- fade ---
     //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
