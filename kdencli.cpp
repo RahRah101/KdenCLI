@@ -118,23 +118,6 @@ void cmdInfo(const string &project) {
     proj.PrintInfo();
 }
 
-
-//Loads local config file
-std::map<std::string, std::string> loadConfig(const std::string &path = "config.local") {
-    std::map<std::string, std::string> config;
-    std::ifstream file(path);
-    std::string line;
-
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        auto eq = line.find('=');
-        if (eq == std::string::npos) continue;
-        config[line.substr(0, eq)] = line.substr(eq + 1);
-    }
-
-    return config;
-}
-
 int main(int argc, char** argv){
     CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
 
@@ -182,7 +165,7 @@ int main(int argc, char** argv){
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
     place->add_option("-ss", place_cut_start, "Cut start (seconds, MM:SS, or HH:MM:SS)");
     place->add_option("-to", place_cut_end, "Cut end (seconds, MM:SS, or HH:MM:SS)");
-    
+
     // --- fade ---
     //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
     //Once you figure out how to set up mlt_services for different effects
