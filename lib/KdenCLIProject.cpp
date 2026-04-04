@@ -47,8 +47,6 @@ TrackId KdenCLIProject::AddAudioTrack() {
     return id;
 }
 
-//TODO: Document better
-//if length < -1, full clip
 TrackEntryId KdenCLIProject::PlaceClipById(TrackId track, ClipId clip,
                                         float timestamp, float length,
                                         float start_offset) {
@@ -69,11 +67,6 @@ TrackEntryId KdenCLIProject::PlaceClipByFilename(const std::string &filepath, Tr
     ClipId clip = file.FindClipByResource(filepath);
     if (clip < 0) {
         throw std::runtime_error("Clip not in bin: " + filepath + "\nRun import first.");
-    }
-
-    //If length is < 0, use full clip
-    if (length < 0) {
-        length = MediaProbe::GetDuration(filepath) - start_offset;
     }
     return PlaceClipById(track, clip, timestamp, length, start_offset);
 }
@@ -133,10 +126,13 @@ void KdenCLIProject::PrintInfo() {
 }
 
 void KdenCLIProject::Save(const std::string &filepath) {
-    // extract directory and filename
     fs::path p(filepath);
-    std::string dir = p.parent_path().string();
-    std::string name = p.stem().string();
+    string dir = p.parent_path().string();
+    string name = p.stem().string();
+
+    if (p.extension() != ".kdenlive") {
+        name = p.filename().string();
+    }
 
     if (dir.empty()) {
         file.SaveToFile(name);
