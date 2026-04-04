@@ -33,6 +33,8 @@ public:
                            float length, float start_offset = 0);
     TrackEntryId PlaceClipByFilename(const std::string &filepath, TrackId track,
                                         float timestamp, float length, float start_offset = 0);
+    TrackEntryId PlaceFullClip(const std::string &filepath, TrackId track, 
+                                        float timestamp, float start_offset = 0);
 
 
     // Apply fade effect to a placed clip

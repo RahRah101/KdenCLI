@@ -176,17 +176,25 @@ int main(int argc, char** argv){
             bool has_length = place->count("--length") > 0;
 
             if (has_ss || has_to) {
-                if (!(has_ss && has_to)) {
-                    throw std::runtime_error("Using cut mode requires both -ss and -to");
+                if (!has_to) {
+                    //If the user doesn't specify an end timestamp, assume it's the end of the clip
+                    place_length = -1;
+                    place_offset = parseTimestamp(place_cut_start);
                 }
-                if (place_cut_end <= place_cut_start) {
+                else if (place_cut_end <= place_cut_start) {
                     throw std::runtime_error("-to must be greater than -ss");
                 }
+                else {
+                    place_offset = parseTimestamp(place_cut_start);
+                    place_length = parseTimestamp(place_cut_end) - place_offset;
+                }
+
 
                 place_offset = parseTimestamp(place_cut_start);
                 place_length = parseTimestamp(place_cut_end);
             } else if (!has_length) {
-                throw std::runtime_error("You must provide either --length with both -ss and -to");
+                //-1 indicates that it's a full clip in this case. 
+                place_length = -1;
             }
 
             TrackEntryId entry;

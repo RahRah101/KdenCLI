@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "KdenCLIProject.h"
+#include "MediaProbe.h"
 
 namespace fs = std::filesystem;
 
@@ -46,6 +47,8 @@ TrackId KdenCLIProject::AddAudioTrack() {
     return id;
 }
 
+//TODO: Document better
+//if length < -1, full clip
 TrackEntryId KdenCLIProject::PlaceClipById(TrackId track, ClipId clip,
                                         float timestamp, float length,
                                         float start_offset) {
@@ -59,6 +62,7 @@ TrackEntryId KdenCLIProject::PlaceClipById(TrackId track, ClipId clip,
     return file.AddClipToTrack(track, clip, length, start_offset);
 }
 
+
 TrackEntryId KdenCLIProject::PlaceClipByFilename(const std::string &filepath, TrackId track,
                                         float timestamp, float length,
                                         float start_offset) {
@@ -66,7 +70,17 @@ TrackEntryId KdenCLIProject::PlaceClipByFilename(const std::string &filepath, Tr
     if (clip < 0) {
         throw std::runtime_error("Clip not in bin: " + filepath + "\nRun import first.");
     }
+
+    //If length is < 0, use full clip
+    if (length < 0) {
+        length = MediaProbe::GetDuration(filepath) - start_offset;
+    }
     return PlaceClipById(track, clip, timestamp, length, start_offset);
+}
+TrackEntryId KdenCLIProject::PlaceFullClip(const std::string &filepath, TrackId track, 
+    float timestamp, float start_offset) {
+    float length = MediaProbe::GetDuration(filepath) - start_offset;
+    return PlaceClipByFilename(filepath, track, timestamp, length, start_offset);
 }
 
 void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
