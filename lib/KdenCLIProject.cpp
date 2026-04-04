@@ -127,8 +127,8 @@ void KdenCLIProject::PrintInfo() {
 
 void KdenCLIProject::Save(const std::string &filepath) {
     fs::path p(filepath);
-    string dir = p.parent_path().string();
-    string name = p.stem().string();
+    std::string dir = p.parent_path().string();
+    std::string name = p.stem().string();
 
     if (p.extension() != ".kdenlive") {
         name = p.filename().string();
