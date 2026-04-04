@@ -468,7 +468,6 @@ std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
     return tracks;
 }
 
-
 std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
     std::vector<ClipInfo> clips;
     int index = 0;

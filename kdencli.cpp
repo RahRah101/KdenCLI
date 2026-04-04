@@ -3,6 +3,7 @@
 #include <vector>
 #include "lib/KdenCLIProject.h"
 #include "lib/CLI11.hpp"
+#include <chrono>
 
 using namespace std;
 
@@ -38,7 +39,6 @@ std::map<std::string, std::string> loadConfig(const std::string &path = "config.
     return config;
 }
 
-
 int main(int argc, char** argv){
     CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
 
@@ -72,6 +72,7 @@ int main(int argc, char** argv){
     string place_project, place_clip_file;
     int place_track = -1, place_clip_id = -1;
     float place_at = 0, place_length = -1, place_offset = 0;
+    chrono::milliseconds place_cut_start, place_cut_end;
 
     auto *place = app.add_subcommand("place", "Place a clip on a track");
     place->add_option("project", place_project, "Project file")->required();
@@ -81,8 +82,15 @@ int main(int argc, char** argv){
     place_clip_group->add_option("--file,-f", place_clip_file, "Clip filepath");
     place_clip_group->require_option(1);
     place->add_option("--at,-a", place_at, "Timestamp in seconds (default: 0)");
-    place->add_option("--length,-l", place_length, "Clip length in seconds")->required();
+    place->add_option("--length,-l", place_length, "Clip length in seconds");
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
+    auto *place_cut_group = place->add_option_group("cut", "Cut within clip using range");
+    place_cut_group->add_option("-ss", place_cut_start, "Start timestamp");
+    place_cut_group->add_option("-to", place_cut_end, "End timestamp");
+    //TODO : Make it so the user can place FULL CLIP without specifying length. This will require 
+    // you to add an additional media parsing dependency(because your dumbass not rewriting fucking ffmpeg)
+    // to get the full length. It will most likely live inside KdenCLIProject, that way we keep the CLI layer
+    // as a CLI layer, the XML KdenFile layer as the XML layer, and the KdenCLIProject as the application/project layer
 
     // --- fade ---
     //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
@@ -154,13 +162,33 @@ int main(int argc, char** argv){
             KdenCLIProject proj;
             proj.Open(place_project);
 
+            bool has_ss = place->count("-ss") > 0;
+            bool has_to = place->count("-to") > 0;
+            bool has_length = place->count("--length") > 0;
+
+            if (has_ss || has_to) {
+                if (!(has_ss && has_to)) {
+                    throw std::runtime_error("Using cut mode requires both -ss and -to");
+                }
+                if (place_cut_end <= place_cut_start) {
+                    throw std::runtime_error("-to must be greater than -ss");
+                }
+
+                place_offset = std::chrono::duration<float>(place_cut_start).count();
+                place_length = std::chrono::duration<float>(place_cut_end - place_cut_start).count();
+            } else if (!has_length) {
+                throw std::runtime_error("You must provide either --length with both -ss and -to");
+            }
+
             TrackEntryId entry;
             if (!place_clip_file.empty()) {
-                entry = proj.PlaceClipByFilename(place_clip_file, place_track,
-                                                  place_at, place_length, place_offset);
+                entry = proj.PlaceClipByFilename(
+                    place_clip_file, place_track, place_at, place_length, place_offset
+                );
             } else {
-                entry = proj.PlaceClipById(place_track, place_clip_id,
-                                            place_at, place_length, place_offset);
+                entry = proj.PlaceClipById(
+                    place_track, place_clip_id, place_at, place_length, place_offset
+                );
             }
 
             proj.Save(place_project);
