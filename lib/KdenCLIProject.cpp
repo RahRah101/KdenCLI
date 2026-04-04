@@ -148,3 +148,10 @@ void KdenCLIProject::Save(const std::string &filepath) {
 std::string KdenCLIProject::ToString() {
     return file.ToString();
 }
+
+std::string KdenCLIProject::GetClipResource(ClipId id) {
+    for (const auto &c : file.GetClips()) {
+        if (c.id == id) return c.resource;
+    }
+    throw std::runtime_error("Clip ID not found: " + std::to_string(id));
+}

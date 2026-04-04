@@ -60,6 +60,10 @@ public:
     void Save(const std::string &filepath);
     std::string ToString();
 
+    // Getters
+    std::string GetClipResource(ClipId id);
+    std::string GetProjectPath() { return project_path; };
+
 private:
     TrackId FindOrCreateTrack(KdenliveFile::TrackType type,
                               float timestamp);
