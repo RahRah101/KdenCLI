@@ -3,7 +3,6 @@
 #include <vector>
 #include "lib/KdenCLIProject.h"
 #include "lib/CLI11.hpp"
-#include <chrono>
 
 using namespace std;
 
@@ -39,6 +38,16 @@ std::map<std::string, std::string> loadConfig(const std::string &path = "config.
     return config;
 }
 
+float parseTimestamp(const std::string &input) {
+    int h, m;
+    float s;
+    if (sscanf(input.c_str(), "%d:%d:%f", &h, &m, &s) == 3)
+        return h * 3600.0f + m * 60.0f + s;
+    if (sscanf(input.c_str(), "%d:%f", &m, &s) == 2)
+        return m * 60.0f + s;
+    return std::stof(input);
+}
+
 int main(int argc, char** argv){
     CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
 
@@ -72,7 +81,7 @@ int main(int argc, char** argv){
     string place_project, place_clip_file;
     int place_track = -1, place_clip_id = -1;
     float place_at = 0, place_length = -1, place_offset = 0;
-    chrono::milliseconds place_cut_start, place_cut_end;
+    string place_cut_start, place_cut_end;
 
     auto *place = app.add_subcommand("place", "Place a clip on a track");
     place->add_option("project", place_project, "Project file")->required();
@@ -162,8 +171,8 @@ int main(int argc, char** argv){
             KdenCLIProject proj;
             proj.Open(place_project);
 
-            bool has_ss = place->count("-ss") > 0;
-            bool has_to = place->count("-to") > 0;
+            bool has_ss = !place_cut_start.empty();
+            bool has_to = !place_cut_end.empty();
             bool has_length = place->count("--length") > 0;
 
             if (has_ss || has_to) {
@@ -174,8 +183,8 @@ int main(int argc, char** argv){
                     throw std::runtime_error("-to must be greater than -ss");
                 }
 
-                place_offset = std::chrono::duration<float>(place_cut_start).count();
-                place_length = std::chrono::duration<float>(place_cut_end - place_cut_start).count();
+                place_offset = parseTimestamp(place_cut_start);
+                place_length = parseTimestamp(place_cut_end);
             } else if (!has_length) {
                 throw std::runtime_error("You must provide either --length with both -ss and -to");
             }
