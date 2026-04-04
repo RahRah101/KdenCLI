@@ -50,16 +50,7 @@ class KdenliveFile{
         float start_offset;
     };
 
-    struct TrackInfo {
-        int id;
-        TrackType type;
-        float length;
-    };
 
-    struct ClipInfo {
-        int id;
-        std::string resource;
-    };
     public:
     // CONSTRUCTORS 
     /** Constructs an empty Kdenlive file, with 0 video tracks and 0 audio tracks.
@@ -127,7 +118,17 @@ class KdenliveFile{
      */
     void LoadFromFile(const std::string &filepath);
 
+    //Public facing interfaces
+    struct TrackInfo {
+        int id;
+        TrackType type;
+        float length;
+    };
 
+    struct ClipInfo {
+        int id;
+        std::string resource;
+    };
 
 
     private:
@@ -178,6 +179,10 @@ class KdenliveFile{
     int chain_count;
     int track_count;
     int filter_count;
+
+    //TODO : Delete these two fuckers. Likely better to rely on the XML file + getters than to have cached vectors with their
+    // own state that might get out of sync 
+    // After deleting these two fuckers. Rewrite GetTrackLength, FadeClip, AddBlankToTrack, AddClipToTrack, and ReconstructState
     std::vector<float> track_lengths;
     std::vector<std::vector<TrackEntry>> track_entries;
 };
