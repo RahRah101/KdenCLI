@@ -19,7 +19,104 @@ using namespace std;
 #include <map>
 
 
+//-- HELPERS --
+float parseTimestamp(const std::string &input) {
+    int h, m;
+    float s;
+    if (sscanf(input.c_str(), "%d:%d:%f", &h, &m, &s) == 3)
+        return h * 3600.0f + m * 60.0f + s;
+    if (sscanf(input.c_str(), "%d:%f", &m, &s) == 2)
+        return m * 60.0f + s;
+    return std::stof(input);
+}
 
+struct PlaceTiming {
+    float length;
+    float offset;
+};
+
+PlaceTiming resolveTiming(float base_length, float base_offset,
+                          const string &ss, const string &to) {
+    if (!ss.empty() && !to.empty()) {
+        float offset = parseTimestamp(ss);
+        float length = parseTimestamp(to) - offset;
+        return {length, offset};
+    }
+    if (!ss.empty()) {
+        return {-1, parseTimestamp(ss)};
+    }
+    return {base_length, base_offset};
+}
+
+
+//-- COMMAND PARSING FUNCTION --
+void cmdCreate(const string &output, int fps, int width, int height) {
+    KdenCLIProject proj;
+    proj.SetProfile(fps, width, height);
+    proj.AddVideoTrack();
+    proj.AddAudioTrack();
+    proj.Save(output);
+    cout << "Created project: " << output << "\n";
+    cout << "  Profile: " << width << "x" << height << " @ " << fps << " fps\n";
+}
+
+void cmdImport(const string &project, const string &filepath) {
+    KdenCLIProject proj;
+    proj.Open(project);
+    ClipId id = proj.ImportClip(filepath);
+    proj.Save(project);
+    cout << "Imported clip " << id << ": " << filepath << "\n";
+}
+
+void cmdAddTrack(const string &project, const string &type) {
+    KdenCLIProject proj;
+    proj.Open(project);
+    TrackId id = (type == "audio") ? proj.AddAudioTrack() : proj.AddVideoTrack();
+    proj.Save(project);
+    cout << "Added " << type << " track " << id << "\n";
+}
+
+void cmdPlace(KdenCLIProject &proj, const string &filepath, int track,
+              float at, float length, float offset,
+              const string &ss, const string &to) {
+    auto timing = resolveTiming(length, offset, ss, to);
+    TrackEntryId entry;
+    if (timing.length < 0) {
+        entry = proj.PlaceFullClip(filepath, track, at, timing.offset);
+    } else {
+        entry = proj.PlaceClipByFilename(filepath, track, at, timing.length, timing.offset);
+    }
+    cout << "Placed " << filepath << " on track " << track << " -> entry " << entry << "\n";
+}
+
+void cmdPlace(KdenCLIProject &proj, int clip_id, int track,
+              float at, float length, float offset,
+              const string &ss, const string &to) {
+    auto timing = resolveTiming(length, offset, ss, to);
+    TrackEntryId entry;
+    if (timing.length < 0) {
+        string path = proj.GetClipResource(clip_id);
+        entry = proj.PlaceFullClip(path, track, at, timing.offset);
+    } else {
+        entry = proj.PlaceClipById(track, clip_id, at, timing.length, timing.offset);
+    }
+    cout << "Placed clip " << clip_id << " on track " << track << " -> entry " << entry << "\n";
+}
+
+void cmdFade(const string &project, int track, int entry_id,
+             float fade_in, float fade_out) {
+    KdenCLIProject proj;
+    proj.Open(project);
+    proj.FadeClip(track, entry_id, fade_in, fade_out);
+    proj.Save(project);
+    cout << "Applied fade to track " << track << " entry " << entry_id << "\n";
+}
+
+void cmdInfo(const string &project) {
+    KdenCLIProject proj;
+    proj.Open(project);
+    proj.PrintInfo();
+}
 
 
 //Loads local config file
@@ -36,16 +133,6 @@ std::map<std::string, std::string> loadConfig(const std::string &path = "config.
     }
 
     return config;
-}
-
-float parseTimestamp(const std::string &input) {
-    int h, m;
-    float s;
-    if (sscanf(input.c_str(), "%d:%d:%f", &h, &m, &s) == 3)
-        return h * 3600.0f + m * 60.0f + s;
-    if (sscanf(input.c_str(), "%d:%f", &m, &s) == 2)
-        return m * 60.0f + s;
-    return std::stof(input);
 }
 
 int main(int argc, char** argv){
@@ -93,14 +180,9 @@ int main(int argc, char** argv){
     place->add_option("--at,-a", place_at, "Timestamp in seconds (default: 0)");
     place->add_option("--length,-l", place_length, "Clip length in seconds");
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
-    auto *place_cut_group = place->add_option_group("cut", "Cut within clip using range");
-    place_cut_group->add_option("-ss", place_cut_start, "Start timestamp");
-    place_cut_group->add_option("-to", place_cut_end, "End timestamp");
-    //TODO : Make it so the user can place FULL CLIP without specifying length. This will require 
-    // you to add an additional media parsing dependency(because your dumbass not rewriting fucking ffmpeg)
-    // to get the full length. It will most likely live inside KdenCLIProject, that way we keep the CLI layer
-    // as a CLI layer, the XML KdenFile layer as the XML layer, and the KdenCLIProject as the application/project layer
-
+    place->add_option("-ss", place_cut_start, "Cut start (seconds, MM:SS, or HH:MM:SS)");
+    place->add_option("-to", place_cut_end, "Cut end (seconds, MM:SS, or HH:MM:SS)");
+    
     // --- fade ---
     //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
     //Once you figure out how to set up mlt_services for different effects
@@ -123,109 +205,35 @@ int main(int argc, char** argv){
 
     CLI11_PARSE(app, argc, argv);
 
-
-    //Load config
-    /*
-    Example config file:
-    KDENLIVE_SHARE_ROOT=/usr/share/kdenlive/
-    */
-    auto config = loadConfig();
-    
-    
-    //This is ugly as hell
-    //TODO : Clean up with function calls later
     try {
-        if (create->parsed()) {
-        KdenCLIProject proj;
-        proj.SetProfile(create_fps, create_width, create_height);
-        proj.AddVideoTrack();
-        proj.AddAudioTrack();
-        proj.Save(create_output);
-        cout << "Created project: " << create_output << "\n";
-        cout << "  Profile: " << create_width << "x" << create_height
-                 << " @ " << create_fps << " fps\n";
-        }
+        if (create->parsed())
+            cmdCreate(create_output, create_fps, create_width, create_height);
 
-        else if (import_cmd->parsed()) {
-            KdenCLIProject proj;
-            proj.Open(import_project);
-            ClipId id = proj.ImportClip(import_filepath);
-            proj.Save(import_project);
-            cout << "Imported clip " << id << ": " << import_filepath << "\n";
-        }
+        else if (import_cmd->parsed())
+            cmdImport(import_project, import_filepath);
 
-        else if (add_track->parsed()) {
-            KdenCLIProject proj;
-            proj.Open(track_project);
-            TrackId id;
-            if (track_type == "audio") {
-                id = proj.AddAudioTrack();
-            } else {
-                id = proj.AddVideoTrack();
-            }
-            proj.Save(track_project);
-            cout << "Added " << track_type << " track " << id << "\n";
-        }
+        else if (add_track->parsed())
+            cmdAddTrack(track_project, track_type);
 
         else if (place->parsed()) {
             KdenCLIProject proj;
             proj.Open(place_project);
 
-            bool has_ss = !place_cut_start.empty();
-            bool has_to = !place_cut_end.empty();
-            bool has_length = place->count("--length") > 0;
-
-            if (has_ss || has_to) {
-                if (!has_to) {
-                    //If the user doesn't specify an end timestamp, assume it's the end of the clip
-                    place_length = -1;
-                    place_offset = parseTimestamp(place_cut_start);
-                }
-                else if (place_cut_end <= place_cut_start) {
-                    throw std::runtime_error("-to must be greater than -ss");
-                }
-                else {
-                    place_offset = parseTimestamp(place_cut_start);
-                    place_length = parseTimestamp(place_cut_end) - place_offset;
-                }
-
-
-                place_offset = parseTimestamp(place_cut_start);
-                place_length = parseTimestamp(place_cut_end);
-            } else if (!has_length) {
-                //-1 indicates that it's a full clip in this case. 
-                place_length = -1;
-            }
-
-            TrackEntryId entry;
-            if (!place_clip_file.empty()) {
-                entry = proj.PlaceClipByFilename(
-                    place_clip_file, place_track, place_at, place_length, place_offset
-                );
-            } else {
-                entry = proj.PlaceClipById(
-                    place_track, place_clip_id, place_at, place_length, place_offset
-                );
-            }
+            if (!place_clip_file.empty())
+                cmdPlace(proj, place_clip_file, place_track, place_at,
+                         place_length, place_offset, place_cut_start, place_cut_end);
+            else
+                cmdPlace(proj, place_clip_id, place_track, place_at,
+                         place_length, place_offset, place_cut_start, place_cut_end);
 
             proj.Save(place_project);
-            cout << "Placed on track " << place_track << " -> entry " << entry << "\n";
         }
 
-        else if (fade->parsed()) {
-            KdenCLIProject proj;
-            proj.Open(fade_project);
-            proj.FadeClip(fade_track, fade_entry, fade_in, fade_out);
-            proj.Save(fade_project);
-            cout << "Applied fade to track " << fade_track
-                 << " entry " << fade_entry << "\n";
-        }
+        else if (fade->parsed())
+            cmdFade(fade_project, fade_track, fade_entry, fade_in, fade_out);
 
-        else if (info->parsed()) {
-            KdenCLIProject proj;
-            proj.Open(info_project);
-            proj.PrintInfo();
-        }
+        else if (info->parsed())
+            cmdInfo(info_project);
 
     } catch (const exception &e) {
         cerr << "Error: " << e.what() << "\n";
