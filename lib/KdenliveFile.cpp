@@ -37,7 +37,6 @@ void KdenliveFile::LoadFromFile(const std::string &filepath) {
     xml_doc.Clear();
     ifstream input_file = openInputFile(filepath);
     string content = readEntireFile(input_file);
-    cout << content << endl;
     input_file.close();
     xml_doc.Parse(content.c_str());
     InitFromXML();
