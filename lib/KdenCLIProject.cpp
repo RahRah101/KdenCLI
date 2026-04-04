@@ -66,7 +66,7 @@ TrackEntryId KdenCLIProject::PlaceClipByFilename(const std::string &filepath, Tr
                                         float start_offset) {
     ClipId clip = file.FindClipByResource(filepath);
     if (clip < 0) {
-        throw std::runtime_error("Clip not in bin: " + filepath + "\nRun import first.");
+        clip = ImportClip(filepath);
     }
     return PlaceClipById(track, clip, timestamp, length, start_offset);
 }
