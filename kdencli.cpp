@@ -1,23 +1,23 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <map>
 #include "lib/KdenCLIProject.h"
 #include "lib/CLI11.hpp"
+#include "lib/MediaProbe.h"
+#include "lib/types.h"
+
 
 using namespace std;
 
 
 /** COMPILE:
- *  g++ *.cpp lib/*.cpp -g -o kdencli
+ *  g++ kdencli.cpp lib/*.cpp -g -o kdencli
  *  
  *  RUN:
  *  ./kdencli
  */
-
-#include <fstream>
-#include <string>
-#include <map>
-
 
 //-- HELPERS --
 float parseTimestamp(const std::string &input) {
@@ -78,20 +78,41 @@ void cmdAddTrack(const string &project, const string &type) {
 
 void cmdPlace(KdenCLIProject &proj, const string &filepath, int track,
               float at, float length, float offset,
-              const string &ss, const string &to) {
+              const string &ss, const string &to,
+              PlaceMode mode = PlaceMode::AUTO) {
     auto timing = resolveTiming(length, offset, ss, to);
     TrackEntryId entry;
-    if (timing.length < 0) {
+
+    if (timing.length < 0)
         entry = proj.PlaceFullClip(filepath, track, at, timing.offset);
-    } else {
+    else
         entry = proj.PlaceClipByFilename(filepath, track, at, timing.length, timing.offset);
-    }
+
     cout << "Placed " << filepath << " on track " << track << " -> entry " << entry << "\n";
+
+    // A/V auto-split: if file has both streams and no override flag
+    if (mode == PlaceMode::AUTO) {
+        auto streams = MediaProbe::GetStreams(filepath);
+        if (streams.has_video && streams.has_audio) {
+            TrackId paired = proj.FindPairedTrack(track);
+            if (paired >= 0) {
+                TrackEntryId paired_entry;
+                if (timing.length < 0)
+                    paired_entry = proj.PlaceFullClip(filepath, paired, at, timing.offset);
+                else
+                    paired_entry = proj.PlaceClipByFilename(filepath, paired, at, timing.length, timing.offset);
+                cout << "A/V split: also placed on track " << paired << " -> entry " << paired_entry << "\n";
+            } else {
+                cout << "No paired track found for A/V split (add a audio/video('''opposite''' of what's already there) track)\n";
+            }
+        }
+    }
 }
 
+//TODO : Handle A/V split in this overload too
 void cmdPlace(KdenCLIProject &proj, int clip_id, int track,
               float at, float length, float offset,
-              const string &ss, const string &to) {
+              const string &ss, const string &to, PlaceMode mode = PlaceMode::AUTO) {
     auto timing = resolveTiming(length, offset, ss, to);
     TrackEntryId entry;
     if (timing.length < 0) {
@@ -152,6 +173,7 @@ int main(int argc, char** argv){
     int place_track = -1, place_clip_id = -1;
     float place_at = 0, place_length = -1, place_offset = 0;
     string place_cut_start, place_cut_end;
+    bool place_video_only = false, place_audio_only = false;
 
     auto *place = app.add_subcommand("place", "Place a clip on a track");
     place->add_option("project", place_project, "Project file")->required();
@@ -165,6 +187,8 @@ int main(int argc, char** argv){
     place->add_option("--offset,-o", place_offset, "Start offset within clip (default: 0)");
     place->add_option("--ss", place_cut_start, "Cut start (seconds, MM:SS, or HH:MM:SS)");
     place->add_option("--to", place_cut_end, "Cut end (seconds, MM:SS, or HH:MM:SS)");
+    place->add_flag("--video-only", place_video_only, "Place on specified track only (skip audio)");
+    place->add_flag("--audio-only", place_audio_only, "Place on specified track only (skip video)");
 
     // --- fade ---
     //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
@@ -188,6 +212,10 @@ int main(int argc, char** argv){
 
     CLI11_PARSE(app, argc, argv);
 
+    PlaceMode mode = place_video_only ? PlaceMode::VIDEO_ONLY
+               : place_audio_only ? PlaceMode::AUDIO_ONLY
+               : PlaceMode::AUTO;
+
     try {
         if (create->parsed())
             cmdCreate(create_output, create_fps, create_width, create_height);
@@ -204,10 +232,10 @@ int main(int argc, char** argv){
 
             if (!place_clip_file.empty())
                 cmdPlace(proj, place_clip_file, place_track, place_at,
-                         place_length, place_offset, place_cut_start, place_cut_end);
+                    place_length, place_offset, place_cut_start, place_cut_end, mode);
             else
                 cmdPlace(proj, place_clip_id, place_track, place_at,
-                         place_length, place_offset, place_cut_start, place_cut_end);
+                         place_length, place_offset, place_cut_start, place_cut_end, mode);
 
             proj.Save(place_project);
         }

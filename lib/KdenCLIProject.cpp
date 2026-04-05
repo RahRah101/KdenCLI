@@ -48,16 +48,9 @@ TrackId KdenCLIProject::AddAudioTrack() {
 }
 
 TrackEntryId KdenCLIProject::PlaceClipById(TrackId track, ClipId clip,
-                                        float timestamp, float length,
-                                        float start_offset) {
-    float track_length = file.GetTrackLength(track);
-    float gap = timestamp - track_length;
-
-    if (gap > 0.001f) {
-        file.AddBlankToTrack(track, gap);
-    }
-
-    return file.AddClipToTrack(track, clip, length, start_offset);
+                                            float timestamp, float length,
+                                            float start_offset) {
+    return file.InsertClipAtPosition(track, clip, timestamp, length, start_offset);
 }
 
 

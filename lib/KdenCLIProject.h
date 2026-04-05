@@ -63,9 +63,11 @@ public:
     // Getters
     std::string GetClipResource(ClipId id);
     std::string GetProjectPath() { return project_path; };
+    std::vector<KdenliveFile::TrackInfo> GetTracks();
+    TrackId FindPairedTrack(TrackId track);
 
 private:
-    TrackId FindOrCreateTrack(KdenliveFile::TrackType type,
+    TrackId FindOrCreateTrack(TrackType type,
                               float timestamp);
 
     KdenliveFile file;
