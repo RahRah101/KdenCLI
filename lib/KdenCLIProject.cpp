@@ -37,13 +37,13 @@ ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
 }
 
 TrackId KdenCLIProject::AddVideoTrack() {
-    TrackId id = file.AddTrack(KdenliveFile::VIDEO);
+    TrackId id = file.AddTrack(TrackType::VIDEO);
     //video_tracks.push_back(id);
     return id;
 }
 
 TrackId KdenCLIProject::AddAudioTrack() {
-    TrackId id = file.AddTrack(KdenliveFile::AUDIO);
+    TrackId id = file.AddTrack(TrackType::AUDIO);
     return id;
 }
 
@@ -81,7 +81,7 @@ void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
     file.FadeClip(track, entry, fade_in, fade_out);
 }
 
-TrackId KdenCLIProject::FindOrCreateTrack(KdenliveFile::TrackType type,
+TrackId KdenCLIProject::FindOrCreateTrack(TrackType type,
                                            float timestamp) {
     for (const auto &track : file.GetTracks()) {
         if (track.type == type && track.length <= timestamp) {
@@ -93,14 +93,14 @@ TrackId KdenCLIProject::FindOrCreateTrack(KdenliveFile::TrackType type,
 
 KdenCLIProject::Placement KdenCLIProject::PlaceOnVideoTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
-    TrackId track = FindOrCreateTrack(KdenliveFile::VIDEO, timestamp);
+    TrackId track = FindOrCreateTrack(TrackType::VIDEO, timestamp);
     TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
 
 KdenCLIProject::Placement KdenCLIProject::PlaceOnAudioTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
-    TrackId track = FindOrCreateTrack(KdenliveFile::AUDIO, timestamp);
+    TrackId track = FindOrCreateTrack(TrackType::AUDIO, timestamp);
     TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
@@ -115,7 +115,7 @@ void KdenCLIProject::PrintInfo() {
 
     std::cout << "Tracks: " << tracks.size() << "\n";
     for (const auto &t : tracks) {
-        std::string type = (t.type == KdenliveFile::AUDIO) ? "audio" : "video";
+        std::string type = (t.type == TrackType::AUDIO) ? "audio" : "video";
         std::cout << "  [" << t.id << "] " << type << " - " << t.length << "s\n";
     }
 
@@ -128,11 +128,7 @@ void KdenCLIProject::PrintInfo() {
 void KdenCLIProject::Save(const std::string &filepath) {
     fs::path p(filepath);
     std::string dir = p.parent_path().string();
-    std::string name = p.stem().string();
-
-    if (p.extension() != ".kdenlive") {
-        name = p.filename().string();
-    }
+    std::string name = p.filename().string();
 
     if (dir.empty()) {
         file.SaveToFile(name);
@@ -150,4 +146,32 @@ std::string KdenCLIProject::GetClipResource(ClipId id) {
         if (c.id == id) return c.resource;
     }
     throw std::runtime_error("Clip ID not found: " + std::to_string(id));
+}
+
+std::vector<KdenliveFile::TrackInfo> KdenCLIProject::GetTracks() {
+    //This is so dumb dawg, but whatever
+    return file.GetTracks();
+}
+
+TrackId KdenCLIProject::FindPairedTrack(TrackId track) {
+    auto tracks = file.GetTracks();
+
+    TrackType src_type = TrackType::VIDEO;
+    for (const auto &t : tracks) {
+        if (t.id == track) { src_type = t.type; break; }
+    }
+
+    TrackType target = (src_type == TrackType::VIDEO)
+        ? TrackType::AUDIO : TrackType::VIDEO;
+
+    //Identify the best audio/video track to pair with its "opposite"(not really but you get me) in this case
+    TrackId best = -1;
+    int best_dist = INT_MAX;
+    for (const auto &t : tracks) {
+        if (t.type == target && abs(t.id - track) < best_dist) {
+            best = t.id;
+            best_dist = abs(t.id - track);
+        }
+    }
+    return best;
 }

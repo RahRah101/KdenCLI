@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "tinyxml2.h"
+#include "types.h"
 
 
 // FILE MANAGEMENT
@@ -19,24 +20,8 @@ std::ofstream openOutputFile(const std::string &filePath);
  */
 std::string readEntireFile(std::ifstream &input_file);
 
-
-// External data types
-typedef int ClipId;
-typedef int TrackId;
-typedef int TrackEntryId;
-
-
 // Wrapper class for XMLDocument, specifically for .kdenlive files
 class KdenliveFile{
-    public:
-
-
-
-    // Data types that I don't want cluttering the global namespace
-    enum TrackType{
-        AUDIO,
-        VIDEO,
-    };
 
     private:
     // Internal data types
