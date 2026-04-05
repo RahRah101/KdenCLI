@@ -155,7 +155,7 @@ KdenliveFile* KdenliveProject::GenerateFile(const vector<string> &media_folder_p
 		}
 		{
 		// If there was no availible track, create a new one and add it there
-		TrackId track_id = kdenlive_file->AddTrack(KdenliveFile::VIDEO);		
+		TrackId track_id = kdenlive_file->AddTrack(TrackType::VIDEO);		
 		video_tracks.push_back(track_id);
 		float track_length = 0;
 		ADD_CLIP
@@ -183,7 +183,7 @@ KdenliveFile* KdenliveProject::GenerateFile(const vector<string> &media_folder_p
 		}
 		{
 		// If there was no availible track, create a new one and add it there
-		TrackId track_id = kdenlive_file->AddTrack(KdenliveFile::AUDIO);
+		TrackId track_id = kdenlive_file->AddTrack(TrackType::AUDIO);
 		audio_tracks.push_back(track_id);
 		float track_length = 0;
 		ADD_CLIP
