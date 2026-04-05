@@ -82,6 +82,9 @@ class KdenliveFile{
      *  Returns a TrackEntryId, which is used to modify the entry later, if needed.
      */
     TrackEntryId AddClipToTrack(const TrackId track_id, const ClipId clip_id, const float clip_length, const float clip_start_offset = 0);
+    TrackEntryId InsertClipAtPosition(TrackId track_id, ClipId clip_id,
+                                     float timestamp, float length,
+                                     float clip_start_offset = 0);
     /** Adds a fade filter to the given entry, on the given track.
      *  
      *  NOTE: This does not currently affect clips placed on an audio track.
@@ -145,6 +148,14 @@ class KdenliveFile{
     std::string FindDocUUID();
 
     void DeletePreExistingTracks();
+    
+    //Helper to splice playlist elements. Used mainly to insert clip between blank spaces in InsertClipAtPosition, 
+    // but could be used for other things so I decided to make a function
+    int SplicePlaylistElement(tinyxml2::XMLElement* playlist,
+                          tinyxml2::XMLElement* target,
+                          tinyxml2::XMLElement* pre,
+                          tinyxml2::XMLElement* middle,
+                          tinyxml2::XMLElement* post);
 
     //Helper to init some attributes from the XML
     void InitFromXML();

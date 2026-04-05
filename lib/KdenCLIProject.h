@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "KdenliveFile.h"
+#include "types.h"
 
 
 class KdenCLIProject {

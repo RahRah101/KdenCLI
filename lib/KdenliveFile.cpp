@@ -200,6 +200,15 @@ string convertToTimestamp(float seconds){
     return ss.str();
 }
 
+float parseTimecode(const char* tc) {
+    if (!tc) return 0;
+    int h, m;
+    float s;
+    if (sscanf(tc, "%d:%d:%f", &h, &m, &s) == 3)
+        return h * 3600.0f + m * 60.0f + s;
+    return 0;
+}
+
 
 // CONSTRUCTORS
 KdenliveFile::KdenliveFile(){
@@ -378,6 +387,79 @@ TrackEntryId KdenliveFile::AddClipToTrack(const TrackId track_id, const ClipId c
     track_entries[track_id].push_back(entry);
 
     return  track_entries[track_id].size() - 1;
+}
+
+TrackEntryId KdenliveFile::InsertClipAtPosition(TrackId track_id, ClipId clip_id,
+                                                 float timestamp, float length,
+                                                 float clip_start_offset) {
+    // Find the playlist for this track (always the even-indexed one)
+    int playlist_index = track_id * 2;
+    string playlist_id = "playlist" + to_string(playlist_index);
+    XMLElement* playlist = FindPlaylistElement(playlist_id.c_str());
+    string chain_str = "chain" + to_string(clip_id);
+
+    // Walk the playlist, tracking position (in seconds !!!)
+    float position = 0;
+    int entry_index = 0;
+    XMLElement* ptr = playlist->FirstChildElement();
+
+    while (ptr != nullptr) {
+        // Skip property elements
+        if (strcmp(ptr->Name(), "property") == 0) {
+            ptr = ptr->NextSiblingElement();
+            continue;
+        }
+        
+        // Check if this part is blank or an entry
+        bool is_blank = (strcmp(ptr->Name(), "blank") == 0);
+        bool is_entry = (strcmp(ptr->Name(), "entry") == 0);
+        float entry_length = 0;
+
+        if (is_blank) {
+            entry_length = parseTimecode(ptr->Attribute("length"));
+        } else if (is_entry) {
+            entry_length = parseTimecode(ptr->Attribute("out"))
+                         - parseTimecode(ptr->Attribute("in"));
+        }
+
+        float entry_end = position + entry_length;
+
+        // Case 1: The timestamp falls inside a blank so we need to split that
+        if (is_blank && timestamp >= position && timestamp < entry_end) {
+            float pre_blank = timestamp - position;
+            float post_blank = entry_end - timestamp - length;
+
+            if (post_blank < -0.001f)
+                throw std::runtime_error("Clip extends past blank space");
+
+            XMLElement* pre  = (pre_blank  > 0.001f) ? CreateBlankElement(pre_blank)  : nullptr;
+            XMLElement* mid  = CreateEntryElement(clip_start_offset, clip_start_offset + length, chain_str.c_str());
+            XMLElement* post_el = (post_blank > 0.001f) ? CreateBlankElement(post_blank) : nullptr;
+
+            int idx = SplicePlaylistElement(playlist, ptr, pre, mid, post_el);
+            ReconstructState();
+            return idx;
+        }
+
+        // Case 2: timestamp falls inside an existing clip. Throws an error
+        // We could consider using splitting the existing clip at the timestamp using SplicePlaylistElement
+        // Basically doing Case 1 but treating the pre/post timestamp parts of the existing clip same way we treat blanks
+        // In Case 1
+        if (is_entry && timestamp > position && timestamp < entry_end) {
+            throw std::runtime_error(
+                "Cannot place clip: overlaps existing entry at " + to_string(timestamp) + "s");
+        }
+
+        position += entry_length;
+        entry_index++;
+        ptr = ptr->NextSiblingElement();
+    }
+
+    // Case 3: timestamp is at or past end of track -> append
+    if (timestamp > position + 0.001f) {
+        AddBlankToTrack(track_id, timestamp - position);
+    }
+    return AddClipToTrack(track_id, clip_id, length, clip_start_offset);
 }
 
 void KdenliveFile::FadeClip(const TrackId track_id, TrackEntryId entry_id, const float fade_in_time, const float fade_out_time){
@@ -805,4 +887,50 @@ void KdenliveFile::DeletePreExistingTracks(){
         }
         prop = prop->NextSiblingElement("property");
     }
+}
+
+int KdenliveFile::SplicePlaylistElement(XMLElement* playlist,
+                                         XMLElement* target,
+                                         XMLElement* pre,
+                                         XMLElement* middle,
+                                         XMLElement* post) {
+    // Find the element before target
+    XMLElement* prev = nullptr;
+    for (XMLElement* scan = playlist->FirstChildElement();
+         scan != target; scan = scan->NextSiblingElement())
+        prev = scan;
+
+    // Count entry/blank index up to target
+    int index = 0;
+    for (XMLElement* scan = playlist->FirstChildElement();
+         scan != target; scan = scan->NextSiblingElement()) {
+        if (strcmp(scan->Name(), "entry") == 0 ||
+            strcmp(scan->Name(), "blank") == 0)
+            index++;
+    }
+
+    // Remove the original element
+    playlist->DeleteChild(target);
+
+    // Insert new elements in order
+    XMLElement* cursor = prev;
+    auto insertNext = [&](XMLElement* el) {
+        if (cursor)
+            playlist->InsertAfterChild(cursor, el);
+        else
+            playlist->InsertFirstChild(el);
+        cursor = el;
+    };
+
+    int middle_index = index;
+    if (pre) {
+        insertNext(pre);
+        middle_index = index + 1;
+    }
+    insertNext(middle);
+    if (post) {
+        insertNext(post);
+    }
+
+    return middle_index;
 }
