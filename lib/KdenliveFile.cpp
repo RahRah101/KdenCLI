@@ -449,12 +449,12 @@ std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
         XMLElement* tractor = FindTractorElement(producer_id);
         if (tractor == nullptr) continue;
 
-        TrackType type = VIDEO;
+        TrackType type = TrackType::VIDEO;
         for (auto* prop = tractor->FirstChildElement("property");
              prop != nullptr;
              prop = prop->NextSiblingElement("property")) {
             if (prop->Attribute("name", "kdenlive:audio_track")) {
-                type = AUDIO;
+                type = TrackType::AUDIO;
                 break;
             }
         }
@@ -469,11 +469,14 @@ std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
 
 std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
     std::vector<ClipInfo> clips;
-    int index = 0;
-
     for (auto* chain = root->FirstChildElement("chain");
          chain != nullptr;
          chain = chain->NextSiblingElement("chain")) {
+
+        const char* id = chain->Attribute("id");
+        int clip_id = -1;
+        if (id && strncmp(id, "chain", 5) == 0)
+            clip_id = std::stoi(id + 5);
 
         string resource;
         for (auto* prop = chain->FirstChildElement("property");
@@ -485,15 +488,13 @@ std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
             }
         }
 
-        clips.push_back({index, resource});
-        index++;
+        clips.push_back({clip_id, resource});
     }
 
     return clips;
 }
 
 ClipId KdenliveFile::FindClipByResource(const std::string &filepath) {
-    int index = 0;
     for (auto* chain = root->FirstChildElement("chain");
          chain != nullptr;
          chain = chain->NextSiblingElement("chain")) {
@@ -502,11 +503,12 @@ ClipId KdenliveFile::FindClipByResource(const std::string &filepath) {
              prop = prop->NextSiblingElement("property")) {
             if (prop->Attribute("name", "resource") && prop->GetText()) {
                 if (filepath == prop->GetText()) {
-                    return index;
+                    const char* id = chain->Attribute("id");
+                    if (id && strncmp(id, "chain", 5) == 0)
+                        return std::stoi(id + 5);
                 }
             }
         }
-        index++;
     }
     return -1;
 }
@@ -536,9 +538,9 @@ void KdenliveFile::SaveToFile(const string &file_name, const string &output_file
     ofstream output;
 
     if(output_filepath != "")
-        output = openOutputFile(output_filepath + "/" + file_name + ".kdenlive");
+        output = openOutputFile(output_filepath + "/" + file_name);
     else
-        output = openOutputFile(file_name + ".kdenlive");
+        output = openOutputFile(file_name);
 	
     output << ToString();
 
