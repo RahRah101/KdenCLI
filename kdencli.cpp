@@ -152,10 +152,25 @@ void cmdPlace(KdenCLIProject &proj, int clip_id, int track,
     printPlaceResult(r, path);
 }
 void cmdFade(const string &project, int track, int entry_id,
-             float fade_in, float fade_out) {
+             float in_start, float in_end,
+             float out_start, float out_end) {
     KdenCLIProject proj;
     proj.Open(project);
-    proj.FadeClip(track, entry_id, fade_in, fade_out);
+
+    if (in_end > in_start) {
+        EffectContext ctx;
+        ctx.in_time  = in_start;
+        ctx.out_time = in_end;
+        proj.ApplyEffect(track, entry_id, "fade_from_black", ctx);
+    }
+
+    if (out_end > out_start) {
+        EffectContext ctx;
+        ctx.in_time  = out_start;
+        ctx.out_time = out_end;
+        proj.ApplyEffect(track, entry_id, "fade_to_black", ctx);
+    }
+
     proj.Save(project);
     cout << "Applied fade to track " << track << " entry " << entry_id << "\n";
 }
@@ -218,18 +233,19 @@ int main(int argc, char** argv){
     place->add_flag("--audio-only", place_audio_only, "Place on specified track only (skip video)");
 
     // --- fade ---
-    //TODO: Create a general "effects" command that can call arbitrary effects of which fade is part of
-    //Once you figure out how to set up mlt_services for different effects
     string fade_project;
     int fade_track = -1, fade_entry = -1;
-    float fade_in = 0, fade_out = 0;
+    float fade_in_start = 0, fade_in_end = 0;
+    float fade_out_start = 0, fade_out_end = 0;
 
     auto *fade = app.add_subcommand("fade", "Apply fade to a placed clip");
     fade->add_option("project", fade_project, "Project file")->required();
     fade->add_option("--track,-t", fade_track, "Track ID")->required();
-    fade->add_option("--entry,-e", fade_entry, "Entry ID (from place command)")->required();
-    fade->add_option("--in,-i", fade_in, "Fade in duration in seconds");
-    fade->add_option("--out,-o", fade_out, "Fade out duration in seconds");
+    fade->add_option("--entry,-e", fade_entry, "Entry ID")->required();
+    fade->add_option("--in-start", fade_in_start, "Fade in start time (seconds)");
+    fade->add_option("--in-end", fade_in_end, "Fade in end time (seconds)");
+    fade->add_option("--out-start", fade_out_start, "Fade out start time (seconds)");
+    fade->add_option("--out-end", fade_out_end, "Fade out end time (seconds)");
 
     // --- info ---
     string info_project;
@@ -268,7 +284,7 @@ int main(int argc, char** argv){
         }
 
         else if (fade->parsed())
-            cmdFade(fade_project, fade_track, fade_entry, fade_in, fade_out);
+            cmdFade(fade_project, fade_track, fade_entry, fade_in_start, fade_in_end, fade_out_start, fade_out_end);
 
         else if (info->parsed())
             cmdInfo(info_project);
