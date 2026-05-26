@@ -11,4 +11,10 @@ enum class TrackType { VIDEO, AUDIO };
 // CLI place behavior
 enum class PlaceMode { AUTO, VIDEO_ONLY, AUDIO_ONLY };
 
+struct Placement {
+    TrackId track;
+    TrackEntryId entry;
+};
+
+
 #endif

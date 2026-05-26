@@ -44,10 +44,6 @@ public:
 
     // Place a clip, auto-selecting or creating a track with room.
     // Returns the TrackId used and TrackEntryId.
-    struct Placement {
-        TrackId track;
-        TrackEntryId entry;
-    };
     Placement PlaceOnVideoTrack(ClipId clip, float timestamp,
                                 float length, float start_offset = 0);
     Placement PlaceOnAudioTrack(ClipId clip, float timestamp,

@@ -84,14 +84,14 @@ TrackId KdenCLIProject::FindOrCreateTrack(TrackType type,
     return file.AddTrack(type);
 }
 
-KdenCLIProject::Placement KdenCLIProject::PlaceOnVideoTrack(
+Placement KdenCLIProject::PlaceOnVideoTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
     TrackId track = FindOrCreateTrack(TrackType::VIDEO, timestamp);
     TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
 }
 
-KdenCLIProject::Placement KdenCLIProject::PlaceOnAudioTrack(
+Placement KdenCLIProject::PlaceOnAudioTrack(
         ClipId clip, float timestamp, float length, float start_offset) {
     TrackId track = FindOrCreateTrack(TrackType::AUDIO, timestamp);
     TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
