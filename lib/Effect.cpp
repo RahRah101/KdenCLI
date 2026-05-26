@@ -26,7 +26,7 @@ const EffectDefinition* EffectCatalog::get(const std::string &id) const {
 
 
 void EffectCatalog::load_from_directory(const std::string &path){
-    if (!(fs::exists(path) || fs::is_directory(path))) {
+    if (!fs::exists(path) || !fs::is_directory(path)) {
         throw std::runtime_error("Effect directory not found: " + path);
     }
 
@@ -59,6 +59,13 @@ ParamType parse_param_type(const std::string &type_str) {
     if (type_str == "multiswitch") return ParamType::MULTISWITCH;
     if (type_str == "bool")        return ParamType::BOOL;
     return ParamType::UNKNOWN;
+}
+
+std::vector<std::string> EffectCatalog::list_ids() const {
+    std::vector<std::string> ids;
+    for (const auto &pair : effects)
+        ids.push_back(pair.first);
+    return ids;
 }
 
 EffectDefinition EffectCatalog::parse_effect_file(const std::string &filepath) {
