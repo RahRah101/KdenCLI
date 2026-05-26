@@ -7,6 +7,7 @@
 #include <vector>
 #include "tinyxml2.h"
 #include "types.h"
+#include "Effect.h"
 
 
 // FILE MANAGEMENT
@@ -19,6 +20,7 @@ std::ofstream openOutputFile(const std::string &filePath);
 /** Returns the entire file as a string
  */
 std::string readEntireFile(std::ifstream &input_file);
+
 
 // Wrapper class for XMLDocument, specifically for .kdenlive files
 class KdenliveFile{
@@ -55,6 +57,11 @@ class KdenliveFile{
      *  NOTE: At least one track needs to be added to create a valid file.
      */
     KdenliveFile();
+
+    //TODO:  write documentation for ApplyEffect
+    void ApplyEffect(TrackId track, TrackEntryId entry,
+                 const EffectDefinition &def,
+                 const EffectContext &ctx);
 
     // SETTERS
     /** Specifies the profile of the video.

@@ -33,6 +33,75 @@ ofstream openOutputFile(const string &filePath){
 	return output_file;
 }
 
+static std::vector<std::string> split_lines(const std::string &s) {
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string line;
+    while (std::getline(ss, line))
+        result.push_back(line);
+    return result;
+}
+
+void KdenliveFile::ApplyEffect(TrackId track_id, TrackEntryId entry_id,
+                                const EffectDefinition &def,
+                                const EffectContext &ctx) {
+    // Get this TrackEntry
+    const TrackEntry &this_entry = track_entries[track_id][entry_id];
+    // Don't allow a filter to be applied to Blank entries
+    if (this_entry.entry_type == EntryType::BLANK)
+        return;
+
+    // Get the entry in the doc
+    const int playlist_index = track_id * 2;
+    const string playlist_id = "playlist" + to_string(playlist_index);
+    XMLElement* entry = FindPlaylistEntry(playlist_id.c_str(), entry_id);
+
+    // Create the filter element with its in/out MLT attributes
+    const string filter_id = "filter" + to_string(filter_count);
+    XMLElement* filter = CreateFilterElement(filter_id.c_str(), ctx.in_time, ctx.out_time);
+
+    //Every MLT filter needs these two, they identify which service to run
+    AddPropertyElement(filter, "mlt_service", def.tag.c_str());
+    AddPropertyElement(filter, "kdenlive_id", def.id.c_str());
+
+    // Walk the effect's parameter definitions and emit properties
+    for (const auto &param : def.parameters) {
+        if (param.type == ParamType::UNKNOWN)
+            continue;
+
+        //use caller override from the Effect Context if provided, else fall back to default
+        std::string value = param.default_value;
+        auto override_it = ctx.overrides.find(param.name);
+        if (override_it != ctx.overrides.end())
+            value = override_it->second;
+
+        if (param.type == ParamType::MULTISWITCH) {
+            // MULTISWITCH encodes multiple property name/value pairs
+            // separated by newline (&#10; in XML). Emit one property per pair.
+            // e.g. name="level\nalpha", value="1\n0=0;-1=1"
+            // emits: level=1 and alpha=0=0;-1=1
+            auto names  = split_lines(param.name);
+            auto values = split_lines(value);
+
+            //We can safely assume that names.size() == values.size(),
+            //as multi-switch encodes name/value pairs so we traverse both
+            //As if that was a map...
+            //This should be consistent in the XML and for now I cba to write 
+            //a failsafe/exception
+            for (size_t i = 0; i < names.size() && i < values.size(); i++) {
+                AddPropertyElement(filter, names[i].c_str(), values[i].c_str());
+            }
+        } else {
+            // All other types: one property, one value
+            AddPropertyElement(filter, param.name.c_str(), value.c_str());
+        }
+    }
+
+    // Attach filter to the entry and update internal counter
+    entry->InsertEndChild(filter);
+    filter_count++;
+}
+
 void KdenliveFile::LoadFromFile(const std::string &filepath) {
     xml_doc.Clear();
     ifstream input_file = openInputFile(filepath);
