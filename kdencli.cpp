@@ -30,6 +30,8 @@ float parseTimestamp(const std::string &input) {
     return std::stof(input);
 }
 
+//TODO: Lowkey what a weird, hacky type.
+//Maybe murder it and pass the arguments directly in the functions needed.
 struct PlaceTiming {
     float length;
     float offset;
@@ -108,20 +110,12 @@ void cmdPlace(KdenCLIProject &proj, const string &filepath, int track,
         }
     }
 }
-
-//TODO : Handle A/V split in this overload too
 void cmdPlace(KdenCLIProject &proj, int clip_id, int track,
               float at, float length, float offset,
               const string &ss, const string &to, PlaceMode mode = PlaceMode::AUTO) {
-    auto timing = resolveTiming(length, offset, ss, to);
-    TrackEntryId entry;
-    if (timing.length < 0) {
-        string path = proj.GetClipResource(clip_id);
-        entry = proj.PlaceFullClip(path, track, at, timing.offset);
-    } else {
-        entry = proj.PlaceClipById(track, clip_id, at, timing.length, timing.offset);
-    }
-    cout << "Placed clip " << clip_id << " on track " << track << " -> entry " << entry << "\n";
+    string path = proj.GetClipResource(clip_id);
+    cout << "Resolved clip " << clip_id << " -> " << path << "\n";
+    cmdPlace(proj, path, track, at, length, offset, ss, to, mode);
 }
 
 void cmdFade(const string &project, int track, int entry_id,
