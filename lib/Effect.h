@@ -45,6 +45,7 @@ public:
     void load_from_directory(const std::string &path);
     const EffectDefinition* get(const std::string &id) const;
     std::vector<std::string> list_ids() const;
+    EffectDefinition parse_effect_file(const std::string &filepath);
 private:
     std::map<std::string, EffectDefinition> effects;
 };

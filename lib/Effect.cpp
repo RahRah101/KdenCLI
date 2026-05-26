@@ -25,7 +25,7 @@ const EffectDefinition* EffectCatalog::get(const std::string &id) const {
 }
 
 
-void load_from_directory(const std::string &path){
+void EffectCatalog::load_from_directory(const std::string &path){
     if (fs::exists(path) || fs::is_directory(path)) {
         throw std::runtime_error("Effect directory not found: " + path);
     }
@@ -38,7 +38,7 @@ void load_from_directory(const std::string &path){
             continue;
         }
         try {
-            EffectDefinition def = parse_effect(entry.path().string());
+            EffectDefinition def = parse_effect_file(entry.path().string());
             register_effect(def);
             loaded++;
         } catch (const std::exception &e) {
@@ -61,7 +61,7 @@ ParamType parse_param_type(const std::string &type_str) {
     return ParamType::UNKNOWN;
 }
 
-EffectDefinition parse_effect_file(const std::string &filepath) {
+EffectDefinition EffectCatalog::parse_effect_file(const std::string &filepath) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filepath.c_str() ) != tinyxml2::XML_SUCCESS) {
         throw std::runtime_error("Failed to load effect file: " + filepath);
