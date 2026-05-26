@@ -34,8 +34,8 @@ struct EffectDefinition {
 };
 
 struct EffectContext {
-    float fade_duration = 0;
-    float clip_end = 0;
+    float in_time  = 0;
+    float out_time = 0;
     std::map<std::string, std::string> overrides;
 };
 
