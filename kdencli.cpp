@@ -50,6 +50,12 @@ PlaceTiming resolveTiming(float base_length, float base_offset,
     return {base_length, base_offset};
 }
 
+struct PlaceResult {
+    Placement primary;
+    bool av_split_attempted = false;
+    bool av_split_succeeded = false;
+    Placement paired;
+};
 
 //-- COMMAND PARSING FUNCTION --
 void cmdCreate(const string &output, int fps, int width, int height) {
@@ -78,46 +84,73 @@ void cmdAddTrack(const string &project, const string &type) {
     cout << "Added " << type << " track " << id << "\n";
 }
 
+
+PlaceResult place(KdenCLIProject &proj, const string &filepath, int track,
+                  float at, float length, float offset,
+                  const string &ss, const string &to,
+                  PlaceMode mode) {
+    auto timing = resolveTiming(length, offset, ss, to);
+    PlaceResult result;
+    result.primary.track = track;
+
+    if (timing.length < 0)
+        result.primary.entry = proj.PlaceFullClip(filepath, track, at, timing.offset);
+    else
+        result.primary.entry = proj.PlaceClipByFilename(filepath, track, at, timing.length, timing.offset);
+
+    if (mode == PlaceMode::AUTO) {
+        auto streams = MediaProbe::GetStreams(filepath);
+        if (streams.has_video && streams.has_audio) {
+            result.av_split_attempted = true;
+            TrackId paired = proj.FindPairedTrack(track);
+            if (paired >= 0) {
+                result.paired.track = paired;
+                if (timing.length < 0)
+                    result.paired.entry = proj.PlaceFullClip(filepath, paired, at, timing.offset);
+                else
+                    result.paired.entry = proj.PlaceClipByFilename(filepath, paired, at, timing.length, timing.offset);
+                result.av_split_succeeded = true;
+            }
+        }
+    }
+    return result;
+}
+
+void printPlaceResult(const PlaceResult &r, const string &filepath) {
+    cout << "Placed " << filepath << " on track " << r.primary.track 
+         << " -> entry " << r.primary.entry << "\n";
+    
+    if (r.av_split_attempted) {
+        if (r.av_split_succeeded) {
+            cout << "A/V split: also placed on track " << r.paired.track 
+                 << " -> entry " << r.paired.entry << "\n";
+        } else {
+            cout << "No paired track found for A/V split\n";
+        }
+    }
+}
+
+//CLI wrapper for place command.
+//Filepath overload
 void cmdPlace(KdenCLIProject &proj, const string &filepath, int track,
               float at, float length, float offset,
               const string &ss, const string &to,
               PlaceMode mode = PlaceMode::AUTO) {
-    auto timing = resolveTiming(length, offset, ss, to);
-    TrackEntryId entry;
-
-    if (timing.length < 0)
-        entry = proj.PlaceFullClip(filepath, track, at, timing.offset);
-    else
-        entry = proj.PlaceClipByFilename(filepath, track, at, timing.length, timing.offset);
-
-    cout << "Placed " << filepath << " on track " << track << " -> entry " << entry << "\n";
-
-    // A/V auto-split: if file has both streams and no override flag
-    if (mode == PlaceMode::AUTO) {
-        auto streams = MediaProbe::GetStreams(filepath);
-        if (streams.has_video && streams.has_audio) {
-            TrackId paired = proj.FindPairedTrack(track);
-            if (paired >= 0) {
-                TrackEntryId paired_entry;
-                if (timing.length < 0)
-                    paired_entry = proj.PlaceFullClip(filepath, paired, at, timing.offset);
-                else
-                    paired_entry = proj.PlaceClipByFilename(filepath, paired, at, timing.length, timing.offset);
-                cout << "A/V split: also placed on track " << paired << " -> entry " << paired_entry << "\n";
-            } else {
-                cout << "No paired track found for A/V split (add a audio/video('''opposite''' of what's already there) track)\n";
-            }
-        }
-    }
+    PlaceResult r = place(proj, filepath, track, at, length, offset, ss, to, mode);
+    printPlaceResult(r, filepath);
 }
+
+//CLI wrapper for place command.
+//clip ID overload
 void cmdPlace(KdenCLIProject &proj, int clip_id, int track,
               float at, float length, float offset,
-              const string &ss, const string &to, PlaceMode mode = PlaceMode::AUTO) {
+              const string &ss, const string &to,
+              PlaceMode mode = PlaceMode::AUTO) {
     string path = proj.GetClipResource(clip_id);
     cout << "Resolved clip " << clip_id << " -> " << path << "\n";
-    cmdPlace(proj, path, track, at, length, offset, ss, to, mode);
+    PlaceResult r = place(proj, path, track, at, length, offset, ss, to, mode);
+    printPlaceResult(r, path);
 }
-
 void cmdFade(const string &project, int track, int entry_id,
              float fade_in, float fade_out) {
     KdenCLIProject proj;
