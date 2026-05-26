@@ -6,6 +6,8 @@
 #include <map>
 #include "KdenliveFile.h"
 #include "types.h"
+#include "Effect.h"
+
 
 
 class KdenCLIProject {
@@ -42,6 +44,9 @@ public:
     void FadeClip(TrackId track, TrackEntryId entry,
                   float fade_in, float fade_out);
 
+    // Apply an effect to a placed clip
+    void ApplyEffect(TrackId track, TrackEntryId entry, const std::string &effect_id, EffectContext ctx);
+
     // Place a clip, auto-selecting or creating a track with room.
     // Returns the TrackId used and TrackEntryId.
     Placement PlaceOnVideoTrack(ClipId clip, float timestamp,
@@ -69,6 +74,7 @@ private:
 
     KdenliveFile file;
     std::string project_path;
+    EffectCatalog catalog;
 };
 
 #endif
