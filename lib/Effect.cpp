@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "tinyxml2.h"
+#include "Effect.h"
 
 namespace fs = std::filesystem;
 
