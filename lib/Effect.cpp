@@ -88,10 +88,8 @@ EffectDefinition parse_effect_file(const std::string &filepath) {
         throw std::runtime_error("Not a valid effect definition: " + filepath);
     }
 
-    //TODO: Maybe replace this with the C-style method of using const char* and strcmp directly
-    //Assuming that that method would be faster/more efficient and the """"""safety""""""" cost is negligible-to-retarded
-    //Cuz we are literally creating a brand new string object just to compare some goddamn chars???
-    definition.unique = (std::string(root->Attribute("unique") ? root->Attribute("unique") : "") == "1");
+    const char* unique_attr = root->Attribute("unique");
+    definition.unique = (unique_attr != nullptr && strcmp(unique_attr, "1") == 0);
     
 
     tinyxml2::XMLElement* param = root->FirstChildElement("parameter");
