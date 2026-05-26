@@ -26,7 +26,7 @@ const EffectDefinition* EffectCatalog::get(const std::string &id) const {
 
 
 void EffectCatalog::load_from_directory(const std::string &path){
-    if (fs::exists(path) || fs::is_directory(path)) {
+    if (!(fs::exists(path) || fs::is_directory(path))) {
         throw std::runtime_error("Effect directory not found: " + path);
     }
 
