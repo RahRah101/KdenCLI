@@ -57,7 +57,7 @@ ParamType parse_param_type(const std::string &type_str) {
     if (type_str == "animated")    return ParamType::ANIMATED;
     if (type_str == "multiswitch") return ParamType::MULTISWITCH;
     if (type_str == "bool")        return ParamType::BOOL;
-    return ParamType::UNKNOWN; // don't throw, just mark as unhandled
+    return ParamType::UNKNOWN;
 }
 
 EffectDefinition parse_effect_file(const std::string &filepath) {
