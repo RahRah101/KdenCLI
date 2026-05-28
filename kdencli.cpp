@@ -175,11 +175,49 @@ void cmdFade(const string &project, int track, int entry_id,
     cout << "Applied fade to track " << track << " entry " << entry_id << "\n";
 }
 
+void cmdListEffects(const EffectCatalog &catalog) {
+    for (const auto &id : catalog.list_ids())
+        cout << id << "\n";
+}
+
+void cmdDescribeEffect(const EffectCatalog &catalog, const string &id) {
+    const EffectDefinition* def = catalog.get(id);
+    if (!def)
+        throw runtime_error("Effect not found: " + id);
+
+    cout << def->id << " (" << def->tag << ")\n";
+    cout << "  type: " << (def->type.empty() ? "any" : def->type) << "\n";
+    cout << "  parameters:\n";
+    for (const auto &p : def->parameters) {
+        cout << "    --param " << p.name 
+             << "=" << p.default_value
+             << "\n";
+    }
+}
+
+void cmdApplyEffect(KdenCLIProject &proj, const string &id, int track, int entry, 
+                    float effect_in, float effect_out, 
+                    const vector<string> &effect_params) {
+    EffectContext ctx;
+    ctx.in_time  = effect_in;
+    ctx.out_time = effect_out;
+
+    for (const auto &p : effect_params) {
+        auto eq = p.find('=');
+        if (eq == string::npos)
+            throw runtime_error("Invalid param format (expected key=value): " + p);
+                ctx.overrides[p.substr(0, eq)] = p.substr(eq + 1);
+    }
+    proj.ApplyEffect(track, entry, id, ctx);
+}
+
 void cmdInfo(const string &project) {
     KdenCLIProject proj;
     proj.Open(project);
     proj.PrintInfo();
 }
+
+
 
 int main(int argc, char** argv){
     CLI::App app{"KdenCLI, a CLI wrapper for KdenCode(and KdenLive, I guess...)"};
@@ -247,6 +285,28 @@ int main(int argc, char** argv){
     fade->add_option("--out-start", fade_out_start, "Fade out start time (seconds)");
     fade->add_option("--out-end", fade_out_end, "Fade out end time (seconds)");
 
+    // --- effect ---
+    string effect_id;
+    float effect_in = 0, effect_out = 0;
+    vector<string> effect_params;
+    string effect_project;
+    int effect_track, effect_entry;
+    string effect_describe;
+    bool effect_list = false;
+
+    auto *eff = app.add_subcommand("effect", "Apply any effect from the catalog");
+
+    
+    eff->add_option("project", effect_project, "Project file");
+    eff->add_option("--track,-t", effect_track, "Track ID");
+    eff->add_option("--entry,-e", effect_entry, "Entry ID");
+    eff->add_option("--id", effect_id, "Effect ID (e.g. fade_from_black, volume, reverb)");
+    eff->add_option("--in-start", effect_in, "Filter start time (seconds)");
+    eff->add_option("--in-end", effect_out, "Filter end time (seconds)");
+    eff->add_option("--param,-p", effect_params, "Parameter override: key=value (repeatable)");
+    eff->add_flag("--list,-l", effect_list, "List all available effect IDs");
+    eff->add_option("--describe,-d", effect_describe, "Describe parameters for an effect ID");
+
     // --- info ---
     string info_project;
 
@@ -286,8 +346,33 @@ int main(int argc, char** argv){
         else if (fade->parsed())
             cmdFade(fade_project, fade_track, fade_entry, fade_in_start, fade_in_end, fade_out_start, fade_out_end);
 
+        else if (eff->parsed()) {
+            if (effect_list) {
+                KdenCLIProject proj;
+                proj.LoadCatalog();
+                cmdListEffects(proj.GetCatalog());
+            }
+            else if (!effect_describe.empty()) {
+                KdenCLIProject proj;
+                proj.LoadCatalog();
+                cmdDescribeEffect(proj.GetCatalog(), effect_describe);
+            }
+            else {
+                if (effect_project.empty() || effect_id.empty() || effect_track < 0 || effect_entry < 0)
+                    throw runtime_error("effect requires project, --track, --entry, and --id");
+                
+                KdenCLIProject proj;
+                proj.Open(effect_project);
+                cmdApplyEffect(proj, effect_id, effect_track, effect_entry, effect_in, effect_out, effect_params);
+                proj.Save(effect_project);
+                cout << "Applied effect '" << effect_id << "' to track " << effect_track 
+                    << " entry " << effect_entry << "\n";
+            }
+    }
+            
         else if (info->parsed())
             cmdInfo(info_project);
+        
 
     } catch (const exception &e) {
         cerr << "Error: " << e.what() << "\n";
