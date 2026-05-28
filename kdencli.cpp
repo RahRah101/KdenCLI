@@ -290,12 +290,11 @@ int main(int argc, char** argv){
     float effect_in = 0, effect_out = 0;
     vector<string> effect_params;
     string effect_project;
-    int effect_track, effect_entry;
+    int effect_track = -1, effect_entry = -1;
     string effect_describe;
     bool effect_list = false;
 
     auto *eff = app.add_subcommand("effect", "Apply any effect from the catalog");
-
     
     eff->add_option("project", effect_project, "Project file");
     eff->add_option("--track,-t", effect_track, "Track ID");
