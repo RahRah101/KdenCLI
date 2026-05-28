@@ -13,7 +13,7 @@ using namespace std;
 
 
 /** COMPILE:
- *  g++ kdencli.cpp lib/*.cpp -g -o kdencli
+ *  g++ -std=c++17 kdencli.cpp lib/*.cpp -g -o kdencli
  *  
  *  RUN:
  *  ./kdencli
@@ -295,7 +295,7 @@ int main(int argc, char** argv){
     bool effect_list = false;
 
     auto *eff = app.add_subcommand("effect", "Apply any effect from the catalog");
-    
+ 
     eff->add_option("project", effect_project, "Project file");
     eff->add_option("--track,-t", effect_track, "Track ID");
     eff->add_option("--entry,-e", effect_entry, "Entry ID");
