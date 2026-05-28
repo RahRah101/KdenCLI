@@ -16,6 +16,10 @@ enum class ParamType {
     ANIMATED,
     MULTISWITCH,
     BOOL,
+    LIST,
+    URL,
+    DOUBLE,
+    BEZIER_SPLINE,
     UNKNOWN
 };
 

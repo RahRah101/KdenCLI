@@ -58,6 +58,10 @@ ParamType parse_param_type(const std::string &type_str) {
     if (type_str == "animated")    return ParamType::ANIMATED;
     if (type_str == "multiswitch") return ParamType::MULTISWITCH;
     if (type_str == "bool")        return ParamType::BOOL;
+    if (type_str == "list")          return ParamType::LIST;
+    if (type_str == "url")           return ParamType::URL;
+    if (type_str == "double")        return ParamType::DOUBLE;
+    if (type_str == "bezier_spline") return ParamType::BEZIER_SPLINE;
     return ParamType::UNKNOWN;
 }
 
@@ -75,9 +79,12 @@ EffectDefinition EffectCatalog::parse_effect_file(const std::string &filepath) {
     }
 
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (root == nullptr) {
-        throw std::runtime_error("Effect file has no root element: " + filepath);
-    }
+    tinyxml2::XMLElement* effect_el = root;
+    if (strcmp(root->Name(), "effect") != 0)
+        effect_el = root->FirstChildElement("effect");
+
+    if (effect_el == nullptr)
+        throw std::runtime_error("No effect element found: " + filepath);
     
     EffectDefinition definition;
 
@@ -88,19 +95,21 @@ EffectDefinition EffectCatalog::parse_effect_file(const std::string &filepath) {
         return val ? val : "";
     };
 
-    definition.tag  = str_or_empty(root->Attribute("tag")); // => mlt_service (dumb reminder!!!)
-    definition.id   = str_or_empty(root->Attribute("id"));
-    definition.type = str_or_empty(root->Attribute("type"));
+    definition.tag  = str_or_empty(effect_el->Attribute("tag")); // => mlt_service (dumb reminder!!!)
+    definition.id   = str_or_empty(effect_el->Attribute("id"));
+    definition.type = str_or_empty(effect_el->Attribute("type"));
 
-    if (definition.tag.empty() || definition.id.empty()) {
+    if (definition.tag.empty())
         throw std::runtime_error("Not a valid effect definition: " + filepath);
-    }
 
-    const char* unique_attr = root->Attribute("unique");
+    if (definition.id.empty())
+        definition.id = definition.tag;
+
+    const char* unique_attr = effect_el->Attribute("unique");
     definition.unique = (unique_attr != nullptr && strcmp(unique_attr, "1") == 0);
     
 
-    tinyxml2::XMLElement* param = root->FirstChildElement("parameter");
+    tinyxml2::XMLElement* param = effect_el->FirstChildElement("parameter");
     
     while (param != nullptr) {
         EffectParameter parameter;
