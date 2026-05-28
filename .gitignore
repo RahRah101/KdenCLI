@@ -6,3 +6,4 @@ dependencies/
 kdencli
 kdencli.exe
 test*.kdenlive
+test/

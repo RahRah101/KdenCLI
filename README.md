@@ -7,6 +7,7 @@ A small and simple CLI wrapper fork around [KdenCode](https://github.com/joshsch
 - Adding new video and audio tracks to the timeline.
 - Adding clips from the project bin onto a video or audio track, with a given position, length, and starting offset.
 - Adding a fade effect to clips added to a track.
+- Ability (theorically, to test) to use any effect defined in XML by Kdenlive in its data folders (/usr/share/kdenlive/effects/ in most GNU/Linux distributions)
 
 # Usage
 TODO
@@ -27,18 +28,3 @@ Note that KdenCLIProject uses KdenliveFile in it's implementation, so you would 
 # Dependencies
 The tinyxml2 library (https://github.com/leethomason/tinyxml2) is used to parse and edit the .kdenlive file, as the .kdenlive files use the XML format.
 The tinyxml2 library has been included in the lib folder.
-
-# Future features
-Other effects will be implemented later. Most likely by defining yaml files for the effects and using the Cpp code as a general applicator. 
-So we would have something like :
-```yaml
-# effects/fade_from_black.yaml
-name: fade_from_black
-mlt_service: brightness
-kdenlive_id: fade_from_black
-properties:
-  start: "1"
-  level: "1"
-  alpha: "0=0;-1=1"
-```
-Or perhaps using embedded Lua helpers or something for effects that might need more conditional logic/tweaks. All-in-all we don't want to hardcode the effects in the Cpp. We want something modular.
