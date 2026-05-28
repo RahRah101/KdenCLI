@@ -4,13 +4,15 @@
 #include "KdenCLIProject.h"
 #include "MediaProbe.h"
 #include "Effect.h"
+#include <cstdlib>
+#include "Config.h"
+#include <climits>
 
 namespace fs = std::filesystem;
 
 KdenCLIProject::KdenCLIProject() {
     //file.SetProfile(30, 1920, 1080);
 }
-
 
 
 void KdenCLIProject::SetProfile(float framerate, int width, int height) {
@@ -21,17 +23,13 @@ void KdenCLIProject::Open(const std::string &filepath) {
     file.LoadFromFile(filepath);
     project_path = filepath;
 
-    //Load catalog of effects
-    //For now we loading from the default dir in most Linux distros but we will have to remove
-    //That later that's idiotic
-    catalog.load_from_directory("/usr/share/kdenlive/effects/");
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
     // check if already imported
     ClipId existing = file.FindClipByResource(filepath);
     if (existing >= 0) {
-        return existing;
+        return existing; 
     }
     // verify file exists
     if (!fs::exists(filepath)) {
@@ -83,6 +81,7 @@ void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
 void KdenCLIProject::ApplyEffect(TrackId track, TrackEntryId entry,
                                   const std::string &effect_id,
                                   EffectContext ctx) {
+    catalog.load_from_directory(KdenConfig::share_path() + "effects/");
     const EffectDefinition* def = catalog.get(effect_id);
     if (!def)
         throw std::runtime_error("Effect not found in catalog: " + effect_id);
