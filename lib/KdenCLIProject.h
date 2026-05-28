@@ -17,8 +17,8 @@ public:
 
     // Open an existing project
     void Open(const std::string &filepath);
-
-    // Set the video profile
+    void LoadCatalog();
+    const EffectCatalog& GetCatalog() const { return catalog; }    // Set the video profile
     void SetProfile(float framerate, int width, int height);
 
     // Import a clip into the project bin. Takes a full filepath.

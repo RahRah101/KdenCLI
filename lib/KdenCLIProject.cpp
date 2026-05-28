@@ -22,7 +22,11 @@ void KdenCLIProject::SetProfile(float framerate, int width, int height) {
 void KdenCLIProject::Open(const std::string &filepath) {
     file.LoadFromFile(filepath);
     project_path = filepath;
+    LoadCatalog();
+}
 
+void KdenCLIProject::LoadCatalog() { 
+    catalog.load_from_directory(KdenConfig::share_path() + "effects/"); 
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
@@ -81,7 +85,6 @@ void KdenCLIProject::FadeClip(TrackId track, TrackEntryId entry,
 void KdenCLIProject::ApplyEffect(TrackId track, TrackEntryId entry,
                                   const std::string &effect_id,
                                   EffectContext ctx) {
-    catalog.load_from_directory(KdenConfig::share_path() + "effects/");
     const EffectDefinition* def = catalog.get(effect_id);
     if (!def)
         throw std::runtime_error("Effect not found in catalog: " + effect_id);
