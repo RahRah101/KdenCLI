@@ -165,6 +165,12 @@ kdencli effect my_project.kdenlive --track 0 --entry 0 \
     --in-start 0 --in-end 2
 ```
 
+##### Known limitation: LADSPA effects
+
+KdenCLI can parse LADSPA-based Kdenlive effect definitions and currently attempts to map `tag="ladspa"` plus `ladspaid` into an MLT service name like `ladspa.<id>`. However, LADSPA effects are still experimental. Kdenlive may report these effects as missing if the required LADSPA plugin is not installed or if the effect requires additional MLT-specific serialization not yet implemented.
+
+For now, basic Kdenlive/MLT effects such as fades are safer than LADSPA effects.
+
 ---
 
 ### `info` — Print project info
