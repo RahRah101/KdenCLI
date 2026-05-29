@@ -33,8 +33,11 @@ struct EffectDefinition {
     std::string tag;       // => mlt_service (TODO: might want to make this more explicit?)
     std::string id;        // => kdenlive_id
     std::string type;      // "audio", "video", ""
+    std::string ladspa_lib;    // LADSPA: .so filename
+    std::string ladspaid;   // LADSPA: plugin integer ID
     bool unique = false;
     std::vector<EffectParameter> parameters;
+        
 };
 
 struct EffectContext {

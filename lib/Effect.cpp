@@ -107,7 +107,8 @@ EffectDefinition EffectCatalog::parse_effect_file(const std::string &filepath) {
 
     const char* unique_attr = effect_el->Attribute("unique");
     definition.unique = (unique_attr != nullptr && strcmp(unique_attr, "1") == 0);
-    
+    definition.ladspa_lib  = str_or_empty(effect_el->Attribute("library"));
+    definition.ladspaid = str_or_empty(effect_el->Attribute("ladspaid"));
 
     tinyxml2::XMLElement* param = effect_el->FirstChildElement("parameter");
     

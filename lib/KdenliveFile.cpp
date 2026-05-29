@@ -60,9 +60,20 @@ void KdenliveFile::ApplyEffect(TrackId track_id, TrackEntryId entry_id,
     const string filter_id = "filter" + to_string(filter_count);
     XMLElement* filter = CreateFilterElement(filter_id.c_str(), ctx.in_time, ctx.out_time);
 
-    //Every MLT filter needs these two, they identify which service to run
-    AddPropertyElement(filter, "mlt_service", def.tag.c_str());
-    AddPropertyElement(filter, "kdenlive_id", def.id.c_str());
+    std::string service = def.tag;
+    std::string kdenlive_id = def.id;
+    //Workaround for LADSPA effects. This is disgusting.
+    //But I noticed in the xml they are actually written as "ladspa.<plugin_id>"
+    //For whatever reason
+    //TODO : Fix LADSAP effects not working properly.
+    if (def.tag == "ladspa" && !def.ladspaid.empty()) {
+        service = "ladspa." + def.ladspaid;
+        kdenlive_id = service;
+    }
+
+    AddPropertyElement(filter, "mlt_service", service.c_str());
+    AddPropertyElement(filter, "kdenlive_id", kdenlive_id.c_str());
+
 
     // Walk the effect's parameter definitions and emit properties
     for (const auto &param : def.parameters) {
