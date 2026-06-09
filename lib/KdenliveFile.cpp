@@ -3,15 +3,13 @@
 #include <cmath>
 #include <iostream>
 #include "KdenliveFile.h"
+#include <filesystem>
+#include <unistd.h>
+#include <limits.h>
+#include "Paths.h"
 
 using namespace std;
 using namespace tinyxml2;
-
-
-// This file is simply the default file created by Kdenlive when creating a new project.
-// TODO: Do this another way
-const char* EMPTY_PROJECT_FILEPATH = "dependencies/empty_project.kdenlive";
-
 
 ifstream openInputFile(const string &file_path){
 	//open file
@@ -301,7 +299,7 @@ KdenliveFile::KdenliveFile(){
     
     // Get "empty" kdenlive file a string and parse it
     {
-    ifstream input_file = openInputFile(EMPTY_PROJECT_FILEPATH);
+    ifstream input_file = openInputFile(KdenPaths::empty_project());
     static const string empty_project_string = readEntireFile(input_file);
     input_file.close(); 
 

@@ -5,7 +5,7 @@
 #include "MediaProbe.h"
 #include "Effect.h"
 #include <cstdlib>
-#include "Config.h"
+#include "Paths.h"
 #include <climits>
 
 namespace fs = std::filesystem;
@@ -26,7 +26,7 @@ void KdenCLIProject::Open(const std::string &filepath) {
 }
 
 void KdenCLIProject::LoadCatalog() { 
-    catalog.load_from_directory(KdenConfig::share_path() + "effects/"); 
+    catalog.load_from_directory(KdenPaths::kdenlive_share() + "effects/"); 
 }
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
