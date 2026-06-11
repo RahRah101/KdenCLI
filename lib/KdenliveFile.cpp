@@ -654,47 +654,88 @@ std::vector<KdenliveFile::TrackInfo> KdenliveFile::GetTracks() {
 
 std::vector<KdenliveFile::ClipInfo> KdenliveFile::GetClips() {
     std::vector<ClipInfo> clips;
+
+    auto propText = [](XMLElement* el, const char* name) -> std::string {
+        for (auto* prop = el->FirstChildElement("property");
+             prop != nullptr;
+             prop = prop->NextSiblingElement("property")) {
+            if (prop->Attribute("name", name))
+                return prop->GetText() ? prop->GetText() : "";
+        }
+        return "";
+    };
+
+    auto propInt = [&](XMLElement* el, const char* name, int fallback = -1) -> int {
+        std::string value = propText(el, name);
+        if (value.empty()) return fallback;
+        return std::stoi(value);
+    };
+
     for (auto* chain = root->FirstChildElement("chain");
          chain != nullptr;
          chain = chain->NextSiblingElement("chain")) {
 
-        const char* id = chain->Attribute("id");
-        int clip_id = -1;
-        if (id && strncmp(id, "chain", 5) == 0)
-            clip_id = std::stoi(id + 5);
+        ClipInfo info;
+        info.id = propInt(chain, "kdenlive:id");
+        info.resource = propText(chain, "resource");
+        info.type = "media";
+        info.producer = chain->Attribute("id") ? chain->Attribute("id") : "";
+        info.name = fs::path(info.resource).filename().string();
 
-        string resource;
-        for (auto* prop = chain->FirstChildElement("property");
-             prop != nullptr;
-             prop = prop->NextSiblingElement("property")) {
-            if (prop->Attribute("name", "resource") && prop->GetText()) {
-                resource = prop->GetText();
-                break;
-            }
-        }
+        clips.push_back(info);
+    }
 
-        clips.push_back({clip_id, resource});
+    for (auto* producer = root->FirstChildElement("producer");
+         producer != nullptr;
+         producer = producer->NextSiblingElement("producer")) {
+
+        if (propText(producer, "mlt_service") != "kdenlivetitle")
+            continue;
+
+        ClipInfo info;
+        info.id = propInt(producer, "kdenlive:id");
+        info.resource = propText(producer, "resource");
+        info.type = "title";
+        info.producer = producer->Attribute("id") ? producer->Attribute("id") : "";
+        info.name = propText(producer, "kdenlive:clipname");
+
+        clips.push_back(info);
     }
 
     return clips;
 }
 
 ClipId KdenliveFile::FindClipByResource(const std::string &filepath) {
+    auto samePath = [](const std::string& a, const std::string& b) -> bool {
+        if (a == b) return true;
+
+        std::error_code ec_a, ec_b;
+        fs::path ca = fs::weakly_canonical(a, ec_a);
+        fs::path cb = fs::weakly_canonical(b, ec_b);
+        return !ec_a && !ec_b && ca == cb;
+    };
+
     for (auto* chain = root->FirstChildElement("chain");
          chain != nullptr;
          chain = chain->NextSiblingElement("chain")) {
+
+        std::string resource;
+        int clip_id = -1;
+
         for (auto* prop = chain->FirstChildElement("property");
              prop != nullptr;
              prop = prop->NextSiblingElement("property")) {
-            if (prop->Attribute("name", "resource") && prop->GetText()) {
-                if (filepath == prop->GetText()) {
-                    const char* id = chain->Attribute("id");
-                    if (id && strncmp(id, "chain", 5) == 0)
-                        return std::stoi(id + 5);
-                }
+            if (prop->Attribute("name", "resource")) {
+                resource = prop->GetText() ? prop->GetText() : "";
+            } else if (prop->Attribute("name", "kdenlive:id") && prop->GetText()) {
+                clip_id = std::stoi(prop->GetText());
             }
         }
+
+        if (!resource.empty() && clip_id >= 0 && samePath(resource, filepath))
+            return clip_id;
     }
+
     return -1;
 }
 
