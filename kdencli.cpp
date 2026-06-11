@@ -7,7 +7,7 @@
 #include "lib/CLI11.hpp"
 #include "lib/MediaProbe.h"
 #include "lib/types.h"
-
+#include "lib/TimeUtil.h"
 
 using namespace std;
 
@@ -20,16 +20,6 @@ using namespace std;
  */
 
 //-- HELPERS --
-float parseTimestamp(const std::string &input) {
-    int h, m;
-    float s;
-    if (sscanf(input.c_str(), "%d:%d:%f", &h, &m, &s) == 3)
-        return h * 3600.0f + m * 60.0f + s;
-    if (sscanf(input.c_str(), "%d:%f", &m, &s) == 2)
-        return m * 60.0f + s;
-    return std::stof(input);
-}
-
 //TODO: Lowkey what a weird, hacky type.
 //Maybe murder it and pass the arguments directly in the functions needed.
 struct PlaceTiming {
@@ -40,12 +30,12 @@ struct PlaceTiming {
 PlaceTiming resolveTiming(float base_length, float base_offset,
                           const string &ss, const string &to) {
     if (!ss.empty() && !to.empty()) {
-        float offset = parseTimestamp(ss);
-        float length = parseTimestamp(to) - offset;
+        float offset = TimeUtil::parseTimestamp(ss);
+        float length = TimeUtil::parseTimestamp(to) - offset;
         return {length, offset};
     }
     if (!ss.empty()) {
-        return {-1, parseTimestamp(ss)};
+        return {-1, TimeUtil::parseTimestamp(ss)};
     }
     return {base_length, base_offset};
 }

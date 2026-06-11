@@ -7,9 +7,14 @@
 #include <unistd.h>
 #include <limits.h>
 #include "Paths.h"
+#include "TimeUtil.h"
+#include <cstdio>
+
 
 using namespace std;
 using namespace tinyxml2;
+namespace fs = std::filesystem;
+
 
 ifstream openInputFile(const string &file_path){
 	//open file
@@ -494,10 +499,10 @@ TrackEntryId KdenliveFile::InsertClipAtPosition(TrackId track_id, ClipId clip_id
         float entry_length = 0;
 
         if (is_blank) {
-            entry_length = parseTimecode(ptr->Attribute("length"));
+            entry_length = TimeUtil::parseTimecode(ptr->Attribute("length"));
         } else if (is_entry) {
-            entry_length = parseTimecode(ptr->Attribute("out"))
-                         - parseTimecode(ptr->Attribute("in"));
+            entry_length = TimeUtil::parseTimecode(ptr->Attribute("out"))
+                         - TimeUtil::parseTimecode(ptr->Attribute("in"));
         }
 
         float entry_end = position + entry_length;
