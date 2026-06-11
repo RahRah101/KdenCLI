@@ -164,7 +164,14 @@ void KdenCLIProject::PrintInfo() {
 
     std::cout << "Clips: " << clips.size() << "\n";
     for (const auto &c : clips) {
-        std::cout << "  [" << c.id << "] " << c.resource << "\n";
+        std::cout << "  [" << c.id << "] " << c.type;
+        if (!c.name.empty())
+            std::cout << " - " << c.name;
+        if (!c.resource.empty())
+            std::cout << " - " << c.resource;
+        if (!c.producer.empty())
+            std::cout << " (" << c.producer << ")";
+        std::cout << "\n";
     }
 }
 

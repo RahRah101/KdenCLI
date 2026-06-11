@@ -751,6 +751,16 @@ tinyxml2::XMLElement* KdenliveFile::FindTractorById(const char* id) {
     return FindTractorElement(id); 
 }
 
+KdenliveFile::ProfileInfo KdenliveFile::GetProfile() const {
+    ProfileInfo info{30, 1920, 1080};   // defaults if attrs missing
+    if (profile) {
+        profile->QueryIntAttribute("frame_rate_num", &info.fps);
+        profile->QueryIntAttribute("width", &info.width);
+        profile->QueryIntAttribute("height", &info.height);
+    }
+    return info;
+}
+
 
 string KdenliveFile::ToString() const{
     XMLPrinter printer;

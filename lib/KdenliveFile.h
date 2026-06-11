@@ -126,6 +126,8 @@ class KdenliveFile{
     tinyxml2::XMLElement* GetTimelineTractor();
     tinyxml2::XMLElement* GetRoot();
     tinyxml2::XMLElement* FindTractorById(const char* id);
+    
+    ProfileInfo GetProfile() const;
 
     std::string ToString() const;
     /** Saves the KdenliveFile to the given directory.
