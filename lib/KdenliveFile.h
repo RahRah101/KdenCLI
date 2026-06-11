@@ -47,8 +47,17 @@ class KdenliveFile{
     };
 
     struct ClipInfo {
-        int id;
+        int id = -1;
         std::string resource;
+        std::string type = "media";
+        std::string producer;
+        std::string name;
+    };
+
+    struct ProfileInfo { 
+        int fps; 
+        int width; 
+        int height; 
     };
     
     // CONSTRUCTORS 
@@ -164,6 +173,10 @@ class KdenliveFile{
                           tinyxml2::XMLElement* middle,
                           tinyxml2::XMLElement* post);
 
+    tinyxml2::XMLElement* FindProducerByClipId(ClipId clip_id);
+    std::string ProducerRef(ClipId clip_id);
+
+
     //Helper to init some attributes from the XML
     void InitFromXML();
     void ReconstructState();
@@ -179,9 +192,11 @@ class KdenliveFile{
     tinyxml2::XMLElement* final_tractor;
     tinyxml2::XMLElement* last_added_root_element;
     // Keeping track of important data
+    int clip_id_counter;
     int chain_count;
     int track_count;
     int filter_count;
+    int producer_count;
 
     //TODO : Delete these two fuckers. Likely better to rely on the XML file + getters than to have cached vectors with their
     // own state that might get out of sync 

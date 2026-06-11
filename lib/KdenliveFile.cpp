@@ -154,6 +154,34 @@ void KdenliveFile::ReconstructState() {
         chain_count++;
     }
 
+    producer_count = 0;
+    for (XMLElement* el = root->FirstChildElement("producer"); el != nullptr;
+         el = el->NextSiblingElement("producer")) {
+        const char* id = el->Attribute("id");
+        if (!id) continue;
+
+        int n = -1;
+        char extra = '\0';
+
+        if (std::sscanf(id, "producer%d%c", &n, &extra) == 1 && n >= 0) {
+            if (n + 1 > producer_count)
+                producer_count = n + 1;
+        }
+    }
+
+    clip_id_counter = 0;
+
+    for (const char* tag : {"chain", "producer"}) {
+        for (XMLElement* el = root->FirstChildElement(tag); el; el = el->NextSiblingElement(tag)) {
+            for (XMLElement* p = el->FirstChildElement("property"); p; p = p->NextSiblingElement("property")) {
+                if (p->Attribute("name", "kdenlive:id") && p->GetText()) {
+                    int id = std::stoi(p->GetText());
+                    if (id + 1 > clip_id_counter) clip_id_counter = id + 1;
+                }
+            }
+        }
+    }
+
     filter_count = 0;
     // filters live inside playlist entries — just count all filter elements
     XMLElement* ptr = root->FirstChildElement();
@@ -283,22 +311,15 @@ string convertToTimestamp(float seconds){
     return ss.str();
 }
 
-float parseTimecode(const char* tc) {
-    if (!tc) return 0;
-    int h, m;
-    float s;
-    if (sscanf(tc, "%d:%d:%f", &h, &m, &s) == 3)
-        return h * 3600.0f + m * 60.0f + s;
-    return 0;
-}
-
 
 // CONSTRUCTORS
 KdenliveFile::KdenliveFile(){
     // Initialize the counts of certain elements in the empty file
     chain_count = 0;
+    clip_id_counter = 0;
     track_count = 0;
     filter_count = 0;
+    producer_count = 0;
     track_lengths = vector<float>();
     track_entries = vector<vector<TrackEntry>>();
     
@@ -412,19 +433,18 @@ TrackId KdenliveFile::AddTrack(const TrackType track_type){
 
 ClipId KdenliveFile::AddClipToBin(const std::string &clip_path){
     // Create chain
+    ClipId clip_id = clip_id_counter++;
     std::string chain_str = "chain" + to_string(chain_count);
-    XMLElement* chain =  CreateChainElement(chain_str.c_str(), clip_path.c_str());
-    
+    XMLElement* chain = CreateChainElement(chain_str.c_str(), clip_path.c_str());
+    AddPropertyElement(chain, "kdenlive:id", std::to_string(clip_id).c_str());    
     // Add chain above all playlists and tractors
     AddElementToTopOfRoot(chain);
-
     // Add entry to main bin
     AddEntryElement(main_bin, 0, 0, chain_str.c_str());
 
     // Set internal data
     chain_count++;
-
-    return chain_count-1;
+    return clip_id;
 }
 
 TrackEntryId KdenliveFile::AddBlankToTrack(const TrackId track_id, const float length){
@@ -456,7 +476,7 @@ TrackEntryId KdenliveFile::AddClipToTrack(const TrackId track_id, const ClipId c
     XMLElement* track_playlist = FindPlaylistElement(playlist_id.c_str());
 
     // Add entry
-    string chain_str = "chain" + to_string(clip_id);
+    string chain_str = ProducerRef(clip_id);
     AddEntryElement(track_playlist, clip_start_offset, clip_length + clip_start_offset, chain_str.c_str());
 
     // Create TrackEntry
@@ -479,7 +499,7 @@ TrackEntryId KdenliveFile::InsertClipAtPosition(TrackId track_id, ClipId clip_id
     int playlist_index = track_id * 2;
     string playlist_id = "playlist" + to_string(playlist_index);
     XMLElement* playlist = FindPlaylistElement(playlist_id.c_str());
-    string chain_str = "chain" + to_string(clip_id);
+    string chain_str = ProducerRef(clip_id);
 
     // Walk the playlist, tracking position (in seconds !!!)
     float position = 0;
@@ -1017,3 +1037,31 @@ int KdenliveFile::SplicePlaylistElement(XMLElement* playlist,
 
     return middle_index;
 }
+
+// The producer element (chain OR producer) whose kdenlive:id == clip_id.
+// Returns nullptr if none.
+XMLElement* KdenliveFile::FindProducerByClipId(ClipId clip_id) {
+    const std::string want = std::to_string(clip_id);
+    for (const char* tag : {"chain", "producer"}) {
+        for (XMLElement* el = root->FirstChildElement(tag); el;
+             el = el->NextSiblingElement(tag)) {
+            for (XMLElement* p = el->FirstChildElement("property"); p;
+                 p = p->NextSiblingElement("property")) {
+                if (p->Attribute("name", "kdenlive:id") && p->GetText()
+                    && want == p->GetText())
+                    return el;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// The actual element-id string ("chain3", "producer1") to use in entries.
+std::string KdenliveFile::ProducerRef(ClipId clip_id) {
+    XMLElement* el = FindProducerByClipId(clip_id);
+    if (!el || !el->Attribute("id"))
+        throw std::runtime_error("No producer for clip id " + std::to_string(clip_id));
+    return el->Attribute("id");
+}
+
+
