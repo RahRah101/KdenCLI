@@ -435,7 +435,7 @@ ClipId KdenliveFile::AddClipToBin(const std::string &clip_path){
     // Create chain
     ClipId clip_id = clip_id_counter++;
     std::string chain_str = "chain" + to_string(chain_count);
-    XMLElement* chain = CreateChainElement(chain_str.c_str(), clip_path.c_str());
+    XMLElement* chain = CreateChainElement(chain_str.c_str(), fs::weakly_canonical(clip_path).c_str());
     AddPropertyElement(chain, "kdenlive:id", std::to_string(clip_id).c_str());    
     // Add chain above all playlists and tractors
     AddElementToTopOfRoot(chain);

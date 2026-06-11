@@ -33,16 +33,17 @@ void KdenCLIProject::LoadCatalog() {
 
 ClipId KdenCLIProject::ImportClip(const std::string &filepath) {
     // check if already imported
-    ClipId existing = file.FindClipByResource(filepath);
+    std::string abs_filepath = fs::weakly_canonical(filepath);
+    ClipId existing = file.FindClipByResource(abs_filepath);
     if (existing >= 0) {
         return existing; 
     }
     // verify file exists
-    if (!fs::exists(filepath)) {
+    if (!fs::exists(abs_filepath)) {
         throw std::runtime_error("File not found: " + filepath);
     }
 
-    ClipId id = file.AddClipToBin(filepath);
+    ClipId id = file.AddClipToBin(abs_filepath);
     return id;
 }
 
