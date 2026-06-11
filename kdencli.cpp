@@ -8,6 +8,7 @@
 #include "lib/MediaProbe.h"
 #include "lib/types.h"
 #include "lib/TimeUtil.h"
+#include "lib/TitleBuilder.h"
 
 using namespace std;
 
@@ -74,6 +75,14 @@ void cmdAddTrack(const string &project, const string &type) {
     cout << "Added " << type << " track " << id << "\n";
 }
 
+void cmdTitle(const string &project, int track, float at, float duration,
+              const TitleBuilder::TitleParams &params) {
+    KdenCLIProject proj;
+    proj.Open(project);
+    Placement pl = proj.AddTitle(params, track, at, duration);
+    proj.Save(project);
+    cout << "Placed title on track " << pl.track << " -> entry " << pl.entry << "\n";
+}
 
 PlaceResult place(KdenCLIProject &proj, const string &filepath, int track,
                   float at, float length, float offset,
@@ -260,6 +269,37 @@ int main(int argc, char** argv){
     place->add_flag("--video-only", place_video_only, "Place on specified track only (skip audio)");
     place->add_flag("--audio-only", place_audio_only, "Place on specified track only (skip video)");
 
+    // --- title ---
+    string title_project, title_text, title_anchor = "bottom-center",
+        title_font = "Liberation Sans", title_color = "255,255,255,255", 
+        title_outline_color = "0,0,0,255", title_outline="2";
+    int title_track = -1, title_margin = 80, 
+        title_x = 0, title_y = 0, 
+        title_font_size = 50, title_box_h = 200, title_box_w = 0;
+    float title_at = 0, title_duration = 5;
+    bool title_use_xy = false;
+
+    auto *title = app.add_subcommand("title", "Add a text title / overlay");
+    title->add_option("project", title_project, "Project file")->required();
+    title->add_option("--track,-t", title_track, "Track ID (default: auto-pick video track)");
+    title->add_option("--text", title_text, "Title text")->required();
+    title->add_option("--at,-a", title_at, "Timestamp in seconds (default 0)");
+    title->add_option("--duration,-d", title_duration, "Duration in seconds (default 5)");
+    title->add_option("--anchor", title_anchor,
+                      "Anchor: top-left|top-center|top-right|center-left|center|"
+                      "center-right|bottom-left|bottom-center|bottom-right");
+    title->add_option("--margin", title_margin, "Margin from edge, px (default 80)");
+    title->add_option("--x", title_x, "Explicit x (requires --xy)");
+    title->add_option("--y", title_y, "Explicit y (requires --xy)");
+    title->add_flag("--xy", title_use_xy, "Use explicit --x/--y instead of --anchor");
+    title->add_option("--font", title_font, "Font family (default Arial)");
+    title->add_option("--font-size", title_font_size, "Font pixel size (default 50)");
+    title->add_option("--color", title_color, "Font color R,G,B,A (default white)");
+    title->add_option("--outline-color", title_outline_color, "Outline color R,G,B,A");
+    title->add_option("--outline", title_outline, "Outline width px (default 2)");
+    title->add_option("--box-width", title_box_w, "Text box width (0 = full frame width)");
+    title->add_option("--box-height", title_box_h, "Text box height (default 200)");
+
     // --- fade ---
     string fade_project;
     int fade_track = -1, fade_entry = -1;
@@ -330,6 +370,25 @@ int main(int argc, char** argv){
                          place_length, place_offset, place_cut_start, place_cut_end, mode);
 
             proj.Save(place_project);
+        }
+
+        else if (title->parsed()) {
+            TitleBuilder::TitleParams tp;
+            tp.text = title_text;
+            tp.use_anchor = !title_use_xy;
+            tp.anchor = title_anchor;
+            tp.margin = title_margin;
+            tp.x = title_x;
+            tp.y = title_y;
+            tp.font = title_font;
+            tp.font_size = title_font_size;
+            tp.color = title_color;
+            tp.outline_color = title_outline_color;
+            tp.outline = title_outline;
+            tp.box_w = title_box_w;
+            tp.box_h = title_box_h;
+            // profile_w/h and length_frames filled by AddTitle from the project
+            cmdTitle(title_project, title_track, title_at, title_duration, tp);
         }
 
         else if (fade->parsed())

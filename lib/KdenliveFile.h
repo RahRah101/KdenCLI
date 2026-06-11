@@ -101,6 +101,10 @@ class KdenliveFile{
     TrackEntryId InsertClipAtPosition(TrackId track_id, ClipId clip_id,
                                      float timestamp, float length,
                                      float clip_start_offset = 0);
+    ClipId AddTitleToBin(const std::string &xmldata,
+                                   const std::string &clipname,
+                                   int length_frames,
+                                   const std::string &duration_tc);
     /** Adds a fade filter to the given entry, on the given track.
      *  
      *  NOTE: This does not currently affect clips placed on an audio track.
@@ -153,13 +157,22 @@ class KdenliveFile{
     tinyxml2::XMLElement* AddPlaylistElement(tinyxml2::XMLElement* element_to_add_to, const char* id, tinyxml2::XMLElement* insert_after = nullptr);
     tinyxml2::XMLElement* CreateTractorElement(const char* id);
     tinyxml2::XMLElement* AddTractorElement(tinyxml2::XMLElement* element_to_add_to, const char* id, tinyxml2::XMLElement* insert_after = nullptr);
-
+    
     void AddElementToTopOfRoot(tinyxml2::XMLElement* element);
     void AddElementToRoot(tinyxml2::XMLElement* element);
 
     tinyxml2::XMLElement* FindPlaylistElement(const char* playlist_id) const;
     tinyxml2::XMLElement* FindTractorElement(const char* tractor_id) const;
     tinyxml2::XMLElement* FindPlaylistEntry(const char* playlist_id, const TrackEntryId entry_index);
+    tinyxml2::XMLElement* CreateTitleElement(const char* id, const char* title_xmldata,
+                                         const char* clipname, int length_frames,
+                                         const char* duration_tc);
+    tinyxml2::XMLElement* AddTitleElement(tinyxml2::XMLElement* element_to_add_to,
+                                      const char* id, const char* title_xmldata,
+                                      const char* clipname, int length_frames,
+                                      const char* duration_tc,
+                                      tinyxml2::XMLElement* insert_after = nullptr);
+
 
     std::string FindDocUUID();
 

@@ -970,6 +970,72 @@ XMLElement* KdenliveFile::FindPlaylistEntry(const char* playlist_id, const Track
     return ptr;
 }
 
+XMLElement* KdenliveFile::CreateTitleElement(const char* id,
+                                             const char* title_xmldata,
+                                             const char* clipname,
+                                             int length_frames,
+                                             const char* duration_tc) {
+    XMLElement* producer = xml_doc.NewElement("producer");
+
+    producer->SetAttribute("id", id);
+
+    producer->SetAttribute("in", "0");
+    producer->SetAttribute("out", length_frames - 1);
+
+    AddPropertyElement(producer, "length", std::to_string(length_frames).c_str());
+    AddPropertyElement(producer, "eof", "pause");
+    AddPropertyElement(producer, "resource", "");
+    AddPropertyElement(producer, "progressive", "1");
+    AddPropertyElement(producer, "aspect_ratio", "1");
+    AddPropertyElement(producer, "seekable", "1");
+    AddPropertyElement(producer, "mlt_service", "kdenlivetitle");
+
+    AddPropertyElement(producer, "kdenlive:duration", duration_tc);
+    AddPropertyElement(producer, "kdenlive:clipname", clipname);
+
+    AddPropertyElement(producer, "xmldata", title_xmldata);
+
+    AddPropertyElement(producer, "kdenlive:clip_type", "2");
+    AddPropertyElement(producer, "force_reload", "0");
+
+    return producer;
+}
+
+XMLElement* KdenliveFile::AddTitleElement(XMLElement* element_to_add_to,
+                                          const char* id,
+                                          const char* title_xmldata,
+                                          const char* clipname,
+                                          int length_frames,
+                                          const char* duration_tc,
+                                          XMLElement* insert_after) {
+    XMLElement* title = CreateTitleElement(id, title_xmldata, clipname,
+                                           length_frames, duration_tc);
+    if (insert_after == nullptr)
+        element_to_add_to->InsertEndChild(title);
+    else
+        element_to_add_to->InsertAfterChild(insert_after, title);
+
+    return title;
+}
+
+ClipId KdenliveFile::AddTitleToBin(const std::string &xmldata,
+                                   const std::string &clipname,
+                                   int length_frames,
+                                   const std::string &duration_tc) {
+    ClipId clip_id = clip_id_counter++;
+    std::string prod_str = "producer" + to_string(producer_count);
+    XMLElement* title = CreateTitleElement(prod_str.c_str(), xmldata.c_str(),
+                                           clipname.c_str(), length_frames,
+                                           duration_tc.c_str());
+    AddPropertyElement(title, "kdenlive:id", std::to_string(clip_id).c_str());
+
+    AddElementToTopOfRoot(title);
+    AddEntryElement(main_bin, 0, 0, prod_str.c_str());
+
+    producer_count++;
+    return clip_id;
+}
+
 string KdenliveFile::FindDocUUID(){
     // Check main bin for kdenlive:docproperties.uuid property
     XMLElement* ptr = main_bin->FirstChildElement();

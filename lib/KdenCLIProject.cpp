@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include "Paths.h"
 #include <climits>
+#include "TimeUtil.h"
+#include "TitleBuilder.h"
 
 namespace fs = std::filesystem;
 
@@ -113,6 +115,37 @@ Placement KdenCLIProject::PlaceOnAudioTrack(
     TrackId track = FindOrCreateTrack(TrackType::AUDIO, timestamp);
     TrackEntryId entry = PlaceClipById(track, clip, timestamp, length, start_offset);
     return {track, entry};
+}
+
+Placement KdenCLIProject::AddTitle(TitleBuilder::TitleParams params,
+                                   int track, float timestamp, float duration_s) {
+    auto prof = file.GetProfile();
+    params.profile_w = prof.width;
+    params.profile_h = prof.height;
+    params.length_frames = static_cast<int>(duration_s * prof.fps);
+
+    std::string xmldata = TitleBuilder::Build(params);
+    std::string duration_tc = TimeUtil::framesToTimecode(params.length_frames, prof.fps);
+
+    ClipId clip = file.AddTitleToBin(xmldata, params.text, params.length_frames, duration_tc);
+    
+
+    TrackId t;
+    // -1 => auto-pick a video track with room
+    if (track < 0) {
+        t = FindOrCreateTrack(TrackType::VIDEO, timestamp);
+    } else {
+        // explicit track must already exist
+        bool exists = false;
+        for (const auto &tr : file.GetTracks())
+            if (tr.id == track) { exists = true; break; }
+        if (!exists)
+            throw std::runtime_error("Track " + std::to_string(track) +
+                " does not exist. Create it first with `add-track`.");
+        t = static_cast<TrackId>(track);
+    }
+    TrackEntryId entry = file.InsertClipAtPosition(t, clip, timestamp, duration_s, 0);
+    return {t, entry};
 }
 
 float KdenCLIProject::GetTrackLength(TrackId track) {

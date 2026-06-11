@@ -7,8 +7,7 @@
 #include "KdenliveFile.h"
 #include "types.h"
 #include "Effect.h"
-
-
+#include "TitleBuilder.h"
 
 class KdenCLIProject {
 public:
@@ -54,6 +53,9 @@ public:
                                 float length, float start_offset = 0);
     Placement PlaceOnAudioTrack(ClipId clip, float timestamp,
                                 float length, float start_offset = 0);
+    
+    Placement AddTitle(TitleBuilder::TitleParams params,
+                        int track, float timestamp, float duration_s);
 
     // Query
     float GetTrackLength(TrackId track);
