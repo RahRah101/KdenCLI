@@ -13,8 +13,9 @@
 using namespace std;
 
 
+//TODO: Make freetype2 dependency for the text metrics optional.
 /** COMPILE:
- *  g++ -std=c++17 kdencli.cpp lib/*.cpp -g -o kdencli
+ *  g++ -std=c++17 kdencli.cpp lib/*.cpp -g -o kdencli $(pkg-config --cflags --libs freetype2)
  *  
  *  RUN:
  *  ./kdencli
