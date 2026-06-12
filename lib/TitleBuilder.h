@@ -16,7 +16,7 @@ namespace TitleBuilder {
 
         // box (for anchored text the box usually spans frame width)
         int box_w = 0;// 0 => default to profile width
-        int box_h = 200;
+        int box_h = 0;
 
         std::string font = "Liberation Sans";
         int font_size = 50;
@@ -27,6 +27,16 @@ namespace TitleBuilder {
         int profile_w = 1920;
         int profile_h = 1080;
         int length_frames = 150;
+
+        bool bold = false;
+        bool italic = false;
+        bool underline = false;
+        int letter_spacing = 0;
+        int line_spacing = 0;
+        std::string font_file = "";          // explicit .ttf override (cross-platform)
+        // advanced pass-through (raw kdenlivetitle format), empty = omit:
+        std::string shadow = "";             // e.g : "1;#ff000000;31;15;0"
+        std::string gradient = "";           // e.g "#ffffffff;#ff000000;0;100;90"
     };
 
     // params -> the raw <kdenlivetitle> document string (NOT yet xml-escaped;

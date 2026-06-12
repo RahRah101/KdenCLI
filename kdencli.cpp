@@ -276,9 +276,12 @@ int main(int argc, char** argv){
         title_outline_color = "0,0,0,255", title_outline="2";
     int title_track = -1, title_margin = 80, 
         title_x = 0, title_y = 0, 
-        title_font_size = 50, title_box_h = 200, title_box_w = 0;
+        title_font_size = 50, title_box_h = 0, title_box_w = 0;
     float title_at = 0, title_duration = 5;
     bool title_use_xy = false;
+    bool title_bold = false, title_italic = false, title_underline = false;
+    int title_letter_spacing = 0, title_line_spacing = 0;
+    string title_font_file, title_shadow, title_gradient;
 
     auto *title = app.add_subcommand("title", "Add a text title / overlay");
     title->add_option("project", title_project, "Project file")->required();
@@ -299,7 +302,16 @@ int main(int argc, char** argv){
     title->add_option("--outline-color", title_outline_color, "Outline color R,G,B,A");
     title->add_option("--outline", title_outline, "Outline width px (default 2)");
     title->add_option("--box-width", title_box_w, "Text box width (0 = full frame width)");
-    title->add_option("--box-height", title_box_h, "Text box height (default 200)");
+    title->add_option("--box-height", title_box_h, "Text box height (default 0)");
+
+    title->add_flag("--bold", title_bold, "Bold text");
+    title->add_flag("--italic", title_italic, "Italic text");
+    title->add_flag("--underline", title_underline, "Underline text");
+    title->add_option("--letter-spacing", title_letter_spacing, "Letter spacing px");
+    title->add_option("--line-spacing", title_line_spacing, "Line spacing px");
+    title->add_option("--font-file", title_font_file, "Explicit .ttf path (cross-platform; bypasses fc-match)");
+    title->add_option("--shadow", title_shadow, "Shadow: enabled;#AARRGGBB;blur;offX;offY");
+    title->add_option("--gradient", title_gradient, "Gradient: #AARRGGBB;#AARRGGBB;0;100;angle");
 
     // --- fade ---
     string fade_project;
@@ -388,6 +400,14 @@ int main(int argc, char** argv){
             tp.outline = title_outline;
             tp.box_w = title_box_w;
             tp.box_h = title_box_h;
+            tp.bold = title_bold;
+            tp.italic = title_italic;
+            tp.font_file = title_font_file;
+            tp.letter_spacing = title_letter_spacing;
+            tp.line_spacing = title_line_spacing;
+            tp.gradient = title_gradient;
+            tp.underline = title_underline;
+            tp.shadow = title_shadow;
             // profile_w/h and length_frames filled by AddTitle from the project
             cmdTitle(title_project, title_track, title_at, title_duration, tp);
         }

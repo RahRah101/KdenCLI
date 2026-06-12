@@ -1,13 +1,14 @@
 #include "TitleBuilder.h"
 #include "tinyxml2.h"
 #include <sstream>
+#include "TextMetrics.h"
 
 namespace TitleBuilder {
 
 static void resolveAnchor(const std::string &anchor, int margin,
                           int profile_w, int profile_h,
-                          int box_w, int box_h,
-                          int &out_x, int &out_y, int &out_align) {
+                          int text_w, int box_h,
+                          int &out_x, int &out_y, int &out_align, int &out_box_w) {
     std::string vert = "center", horiz = "center";
     auto dash = anchor.find('-');
     if (dash == std::string::npos) {
@@ -18,9 +19,11 @@ static void resolveAnchor(const std::string &anchor, int margin,
         horiz = anchor.substr(dash + 1);
     }
 
+    out_box_w = text_w;
+
     if (horiz == "left")       { out_x = margin; out_align = 0; }
-    else if (horiz == "right") { out_x = profile_w - box_w - margin; out_align = 2; }
-    else                       { out_x = (profile_w - box_w) / 2; out_align = 1; }
+    else if (horiz == "right") { out_x = profile_w - text_w - margin; out_align = 2; }
+    else                       { out_x = (profile_w - text_w) / 2; out_align = 1; }
 
     if (vert == "top")         out_y = margin;
     else if (vert == "bottom") out_y = profile_h - box_h - margin;
@@ -28,12 +31,16 @@ static void resolveAnchor(const std::string &anchor, int margin,
 }
 
 std::string Build(const TitleParams &p) {
-    int box_w = (p.box_w > 0) ? p.box_w : p.profile_w;
-    int box_h = p.box_h;
+    int box_h = (p.box_h > 0) ? p.box_h : static_cast<int>(p.font_size * 1.3);
+    int text_w = (p.box_w > 0) ? p.box_w
+           : TextMetrics::textWidth(p.text, p.font, p.font_size,
+                                    p.bold, p.italic, p.font_file);
+
     int x = p.x, y = p.y, alignment = 1;
+    int box_w = text_w;
     if (p.use_anchor)
         resolveAnchor(p.anchor, p.margin, p.profile_w, p.profile_h,
-                      box_w, box_h, x, y, alignment);
+                      text_w, box_h, x, y, alignment, box_w);
     int out_frame = p.length_frames - 1;
 
     using namespace tinyxml2;
@@ -73,7 +80,16 @@ std::string Build(const TitleParams &p) {
     content->SetAttribute("alignment", alignment);
     content->SetAttribute("box-width", box_w);
     content->SetAttribute("box-height", box_h);
-    content->SetText(p.text.c_str());      // tinyxml2 escapes the text for us
+    content->SetAttribute("font-weight", p.bold ? "700" : "400");
+    content->SetAttribute("font-italic", p.italic ? "1" : "0");
+    content->SetAttribute("font-underline", p.underline ? "1" : "0");
+    content->SetAttribute("letter-spacing", p.letter_spacing);
+    content->SetAttribute("line-spacing", p.line_spacing);
+    if (!p.shadow.empty())   content->SetAttribute("shadow", p.shadow.c_str());
+    if (!p.gradient.empty()) content->SetAttribute("gradient", p.gradient.c_str());
+
+    content->SetText(p.text.c_str());
+
     item->InsertEndChild(content);
 
     XMLElement* startvp = doc.NewElement("startviewport");
