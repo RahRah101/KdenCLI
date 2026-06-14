@@ -171,17 +171,21 @@ void KdenliveFile::ReconstructState() {
 
     clip_id_counter = 0;
 
-    for (const char* tag : {"chain", "producer"}) {
-        for (XMLElement* el = root->FirstChildElement(tag); el; el = el->NextSiblingElement(tag)) {
-            for (XMLElement* p = el->FirstChildElement("property"); p; p = p->NextSiblingElement("property")) {
-                if (p->Attribute("name", "kdenlive:id") && p->GetText()) {
-                    int id = std::stoi(p->GetText());
-                    if (id + 1 > clip_id_counter) clip_id_counter = id + 1;
-                }
+    for (XMLElement* el = root->FirstChildElement();
+        el != nullptr;
+        el = el->NextSiblingElement()) {
+
+        for (XMLElement* p = el->FirstChildElement("property");
+            p != nullptr;
+            p = p->NextSiblingElement("property")) {
+
+            if (p->Attribute("name", "kdenlive:id") && p->GetText()) {
+                int id = std::stoi(p->GetText());
+                if (id + 1 > clip_id_counter)
+                    clip_id_counter = id + 1;
             }
         }
     }
-
     filter_count = 0;
     // filters live inside playlist entries — just count all filter elements
     XMLElement* ptr = root->FirstChildElement();
@@ -357,6 +361,7 @@ KdenliveFile::KdenliveFile(){
     // Delete all the tracks the Kdenlive pre-generate in new files
     // We do this so we don't have to manually modify the generated empty file to get a file with 0 tracks
     DeletePreExistingTracks();
+    ReconstructState();
 }
 
 
@@ -421,14 +426,37 @@ TrackId KdenliveFile::AddTrack(const TrackType track_type){
     }
 
     // Add tractor to timeline as a track
-    AddTrackElement(timeline_tractor, tractor_str.c_str());
+    AddTimelineTrackElement(tractor_str.c_str());
 
     // Set internal data
     track_count ++;
+    
     track_lengths.push_back(0);
     track_entries.push_back( vector<TrackEntry>() );
 
+    SetSequenceTrackCount(track_count);
+
     return track_count - 1;
+}
+
+XMLElement* KdenliveFile::AddTimelineTrackElement(const char* producer) {
+    XMLElement* track = CreateTrackElement(producer);
+
+    XMLElement* last_track = nullptr;
+    for (XMLElement* child = timeline_tractor->FirstChildElement();
+         child != nullptr;
+         child = child->NextSiblingElement()) {
+        if (strcmp(child->Name(), "track") == 0) {
+            last_track = child;
+        }
+    }
+
+    if (last_track)
+        timeline_tractor->InsertAfterChild(last_track, track);
+    else
+        timeline_tractor->InsertEndChild(track);
+
+    return track;
 }
 
 ClipId KdenliveFile::AddClipToBin(const std::string &clip_path){
@@ -1090,6 +1118,19 @@ void KdenliveFile::DeletePreExistingTracks(){
         }
     }
 
+    //TODO: Handle transitions
+    // Delete all transitions (We don't handle them well yet)
+    XMLElement* child = timeline_tractor->FirstChildElement();
+    while (child != nullptr) {
+        XMLElement* next = child->NextSiblingElement();
+
+        if (strcmp(child->Name(), "transition") == 0) {
+            timeline_tractor->DeleteChild(child);
+        }
+
+    child = next;
+    }
+
     // Reset track count properties in the timeline tractor
     XMLElement* prop = timeline_tractor->FirstChildElement("property");
     while (prop != nullptr) {
@@ -1106,6 +1147,20 @@ void KdenliveFile::DeletePreExistingTracks(){
             }
         }
         prop = prop->NextSiblingElement("property");
+    }
+}
+
+void KdenliveFile::SetSequenceTrackCount(int count) {
+    if (timeline_tractor == nullptr) return;
+    for (XMLElement* prop = timeline_tractor->FirstChildElement("property");
+         prop != nullptr;
+         prop = prop->NextSiblingElement("property")) {
+        const char* name = prop->Attribute("name");
+        if (name != nullptr &&
+            string(name) == "kdenlive:sequenceproperties.tracksCount") {
+            prop->SetText(to_string(count).c_str());
+            return;
+        }
     }
 }
 

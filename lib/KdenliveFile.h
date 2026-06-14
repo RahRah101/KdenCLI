@@ -85,6 +85,8 @@ class KdenliveFile{
      *  Returns a TrackId, which is used to add clips to the new track.
      */
     TrackId AddTrack(const TrackType track_type);
+
+    tinyxml2::XMLElement* AddTimelineTrackElement(const char* producer);
     /** Adds a clip to the project bin.
      *  Returns a ClipId, which is used to add the new clip to a track.
      *  This must be called before a clip can be added using AddClipToTrack().
@@ -179,6 +181,7 @@ class KdenliveFile{
     std::string FindDocUUID();
 
     void DeletePreExistingTracks();
+    void SetSequenceTrackCount(int count);
     
     //Helper to splice playlist elements. Used mainly to insert clip between blank spaces in InsertClipAtPosition, 
     // but could be used for other things so I decided to make a function
