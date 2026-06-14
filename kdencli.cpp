@@ -91,6 +91,15 @@ PlaceResult place(KdenCLIProject &proj, const string &filepath, int track,
                   PlaceMode mode) {
     auto timing = resolveTiming(length, offset, ss, to);
     PlaceResult result;
+    
+    if (track < 0) {
+    auto streams = MediaProbe::GetStreams(filepath);
+    // video-bearing files go on a video track; audio-only on an audio track.
+    // FindOrCreateTrack picks an existing track with room or makes one.
+    track = streams.has_video
+        ? proj.FindOrCreateTrack(TrackType::VIDEO, at)
+        : proj.FindOrCreateTrack(TrackType::AUDIO, at);
+    }
     result.primary.track = track;
 
     if (timing.length < 0)
@@ -257,7 +266,7 @@ int main(int argc, char** argv){
 
     auto *place = app.add_subcommand("place", "Place a clip on a track");
     place->add_option("project", place_project, "Project file")->required();
-    place->add_option("--track,-t", place_track, "Track ID")->required();
+    place->add_option("--track,-t", place_track, "Track ID (-1 = auto)");
     auto *place_clip_group = place->add_option_group("clip", "Clip to place (pick one)");
     place_clip_group->add_option("--clipid,-c", place_clip_id, "Clip ID");
     place_clip_group->add_option("--file,-f", place_clip_file, "Clip filepath");

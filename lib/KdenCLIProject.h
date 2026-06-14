@@ -71,10 +71,10 @@ public:
     std::vector<KdenliveFile::TrackInfo> GetTracks();
     TrackId FindPairedTrack(TrackId track);
     KdenliveFile::ProfileInfo GetProfile() { return file.GetProfile(); }
-
-private:
     TrackId FindOrCreateTrack(TrackType type,
                               float timestamp);
+
+private:
 
     KdenliveFile file;
     std::string project_path;
